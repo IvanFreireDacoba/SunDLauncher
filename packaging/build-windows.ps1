@@ -23,6 +23,10 @@ if (-not (Get-Command jpackage -ErrorAction SilentlyContinue)) {
     Write-Error "No se encuentra 'jpackage' en el PATH. Necesitas un JDK 17+ y JAVA_HOME configurado."
     exit 1
 }
+if (-not $env:JAVA_HOME) {
+    Write-Error "Define JAVA_HOME apuntando a tu JDK 17."
+    exit 1
+}
 
 Write-Host "==> leyendo version de pom.xml"
 $VERSION = (mvn -q help:evaluate "-Dexpression=project.version" -DforceStdout).Trim()
@@ -38,6 +42,13 @@ Remove-Item -Recurse -Force target\jpackage-input -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path target\jpackage-input | Out-Null
 Copy-Item target\SunDLauncher.jar target\jpackage-input\
 
+# Resolver symlinks/junctions de JAVA_HOME antes de pasarlo a --runtime-image:
+# jpackage copia el runtime con Files.walkFileTree sin seguir symlinks, y si
+# la raiz es un symlink lo trata como fichero en vez de directorio (visto en
+# CI Linux con el hostedtoolcache de GitHub Actions; fix defensivo tambien
+# aqui por si el runner de Windows tiene el mismo patron).
+$RUNTIME_IMAGE = (Resolve-Path $env:JAVA_HOME).Path
+
 jpackage `
   --type exe `
   --name SunDLauncher `
@@ -51,6 +62,7 @@ jpackage `
   --win-menu `
   --win-dir-chooser `
   --win-upgrade-uuid $UPGRADE_UUID `
+  --runtime-image $RUNTIME_IMAGE `
   --dest target\dist
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

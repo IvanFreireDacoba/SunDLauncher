@@ -43,7 +43,16 @@ echo "==> Pusheando a origin/$BRANCH"
 git push origin "$BRANCH"
 
 echo "==> Lanzando workflow '$WORKFLOW' en GitHub Actions"
-gh workflow run "$WORKFLOW" --ref "$BRANCH"
+INTENTOS=0
+until gh workflow run "$WORKFLOW" --ref "$BRANCH"; do
+  INTENTOS=$((INTENTOS + 1))
+  if [ "$INTENTOS" -ge 5 ]; then
+    echo "GitHub Actions no responde tras varios intentos, prueba más tarde."
+    exit 1
+  fi
+  echo "Fallo transitorio al disparar el workflow, reintentando en 15s..."
+  sleep 15
+done
 
 echo "==> Esperando a que GitHub registre la nueva ejecución..."
 sleep 8

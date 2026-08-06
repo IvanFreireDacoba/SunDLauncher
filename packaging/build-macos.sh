@@ -36,6 +36,13 @@ echo "==> jpackage (instalador .pkg, runtime completo embebido)"
 rm -rf target/dist target/jpackage-input
 mkdir -p target/jpackage-input
 cp target/SunDLauncher.jar target/jpackage-input/
+# Resolver symlinks de $JAVA_HOME antes de pasarlo a --runtime-image: jpackage
+# copia el runtime con Files.walkFileTree sin seguir symlinks, y si la raíz
+# es un symlink la trata como fichero en vez de directorio (visto en CI Linux
+# con el hostedtoolcache de GitHub Actions; fix defensivo también aquí). Se
+# usa "cd + pwd -P" en vez de "readlink -f" porque el readlink de macOS (BSD)
+# no soporta -f.
+JAVA_HOME="$(cd "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 17}" && pwd -P)"
 jpackage \
   --type pkg \
   --name SunDLauncher \
@@ -46,6 +53,7 @@ jpackage \
   --app-version "$VERSION" \
   --vendor "SunDStudios" \
   --mac-package-identifier es.sund.launcher \
+  --runtime-image "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 17}" \
   --dest target/dist
 
 echo "==> comprimiendo en zip para repartir"

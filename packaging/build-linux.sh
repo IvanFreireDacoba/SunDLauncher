@@ -37,8 +37,13 @@ echo "==> jpackage (app-image, runtime completo embebido)"
 rm -rf target/dist target/jpackage-input target/AppDir
 mkdir -p target/jpackage-input
 cp target/SunDLauncher.jar target/jpackage-input/
+# jpackage copia el runtime-image recorriendo el árbol con Files.walkFileTree
+# sin seguir symlinks: si $JAVA_HOME es (o pasa por) un symlink -como en el
+# hostedtoolcache de los runners de GitHub Actions-, trata la raíz como un
+# fichero en vez de un directorio y falla con NoSuchFileException. Resolver
+# a la ruta real evita el problema.
+RUNTIME_IMAGE="$(readlink -f "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 17}")"
 jpackage \
-  --verbose \
   --type app-image \
   --name SunDLauncher \
   --input target/jpackage-input \
@@ -47,7 +52,7 @@ jpackage \
   --icon packaging/icons/SunDLauncher.png \
   --app-version "$VERSION" \
   --vendor "SunDStudios" \
-  --runtime-image "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 17}" \
+  --runtime-image "$RUNTIME_IMAGE" \
   --dest target/dist
 
 echo "==> empaquetando como AppImage (ejecutable único)"
