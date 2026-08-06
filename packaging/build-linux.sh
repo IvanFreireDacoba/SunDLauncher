@@ -38,6 +38,7 @@ rm -rf target/dist target/jpackage-input target/AppDir
 mkdir -p target/jpackage-input
 cp target/SunDLauncher.jar target/jpackage-input/
 jpackage \
+  --verbose \
   --type app-image \
   --name SunDLauncher \
   --input target/jpackage-input \

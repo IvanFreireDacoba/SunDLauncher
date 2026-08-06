@@ -21,6 +21,7 @@ jobs:
           if-no-files-found: error
 
   windows:
+    if: false # TEMP: deshabilitado mientras se depura el job linux
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +39,7 @@ jobs:
           if-no-files-found: error
 
   macos:
+    if: false # TEMP: deshabilitado mientras se depura el job linux
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
