@@ -1,0 +1,267 @@
+package es.sund.launcher.ui;
+
+import es.sund.launcher.config.AppConstants;
+import es.sund.launcher.util.IcoImageLoader;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+
+/**
+ * Ventana principal. Esta clase SOLO construye y expone componentes de UI:
+ * no llama a la API, no toca ficheros, no lanza Minecraft. Esa lógica vive
+ * en las clases de es.sund.launcher.action y es.sund.launcher.controller,
+ * que reciben esta ventana y se enganchan a sus botones desde fuera.
+ *
+ * Tiene un constructor público sin argumentos a propósito: es un requisito
+ * de WindowBuilder para poder abrir la pestaña "Design" y renderizar la
+ * ventana sin necesitar dependencias externas.
+ */
+public class MainFrame extends JFrame {
+
+    private static final long serialVersionUID = 219466180975617916L;
+
+	private final BackgroundPanel backgroundPanel = new BackgroundPanel();
+
+    /** Panel translúcido detrás del formulario, para que los campos se lean bien sobre la ilustración de fondo. */
+    private final JPanel formBacking = new JPanel(null) {
+        private static final long serialVersionUID = 1L;
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(18, 13, 10, 175));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+            g2.setColor(new Color(201, 154, 68, 130));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
+            g2.dispose();
+        }
+    };
+
+    private final JLabel titleLabel = new JLabel("Iniciar sesión en SunD", SwingConstants.CENTER);
+    private final JLabel usernameLabel = new JLabel("Usuario:");
+    private final JLabel passwordLabel = new JLabel("Contraseña:");
+    private final JTextField usernameField = new JTextField();
+    private final JPasswordField passwordField = new JPasswordField();
+    private final JLabel statusLabel = new JLabel(" ", SwingConstants.CENTER);
+
+    private final JButton loginButton = new JButton("Entrar");
+    private final JButton exitButton = new JButton("Salir");
+    private final JButton updateButton = new JButton("Actualizar lanzador");
+
+    private static final Color GOLD_TEXT = new Color(242, 219, 165);
+    private static final Color GOLD_ACCENT = new Color(224, 178, 96);
+    private static final Color BUTTON_STONE = new Color(58, 50, 42);
+
+    /** Tamaño mínimo para que el formulario no llegue a deformarse; sin máximo, la ventana admite pantalla completa. */
+    private static final int MIN_WIDTH = 640;
+    private static final int MIN_HEIGHT = 520;
+
+    public MainFrame() {
+        super("SunD Launcher");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setResizable(true);
+        setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
+        setIconImages(IcoImageLoader.loadAllSizes(AppConstants.WINDOW_ICON_RESOURCE));
+
+        Dimension windowSize = computeWindowSize();
+        setSize(windowSize);
+        setLocationRelativeTo(null);
+
+        buildComponents();
+        setContentPane(backgroundPanel);
+        layoutComponents(windowSize.width, windowSize.height);
+
+        // El formulario usa posicionamiento absoluto (setBounds), no un
+        // LayoutManager, así que al redimensionar/maximizar la ventana hay que
+        // recalcular esas posiciones a mano: sin esto se quedarían clavadas en
+        // las coordenadas del tamaño inicial y el formulario se vería
+        // descuadrado o cortado en vez de reajustarse.
+        backgroundPanel.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                layoutComponents(backgroundPanel.getWidth(), backgroundPanel.getHeight());
+            }
+        });
+
+        // Habilitar "Entrar" solo cuando usuario y contraseña tienen contenido.
+        // Esto es puramente reactivo de UI, por eso vive aquí y no en una Action.
+        DocumentListener fieldsListener = new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { updateLoginButtonState(); }
+            @Override public void removeUpdate(DocumentEvent e) { updateLoginButtonState(); }
+            @Override public void changedUpdate(DocumentEvent e) { updateLoginButtonState(); }
+        };
+        usernameField.getDocument().addDocumentListener(fieldsListener);
+        passwordField.getDocument().addDocumentListener(fieldsListener);
+        updateLoginButtonState();
+
+        // El botón de actualizar empieza deshabilitado: solo se activa si el
+        // StartupController confirma que hay conexión Y hay una versión distinta.
+        updateButton.setEnabled(false);
+    }
+
+    private Dimension computeWindowSize() {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = (int) (screenSize.width * AppConstants.MAIN_WINDOW_SCREEN_RATIO);
+        int height = (int) (screenSize.height * AppConstants.MAIN_WINDOW_SCREEN_RATIO);
+        return new Dimension(width, height);
+    }
+
+    /** Estilo y alta de todos los componentes en backgroundPanel; se hace una sola vez (nunca en cada resize). */
+    private void buildComponents() {
+        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 22f));
+        titleLabel.setForeground(GOLD_TEXT);
+        backgroundPanel.add(formBacking);
+        backgroundPanel.add(titleLabel);
+
+        usernameLabel.setForeground(GOLD_TEXT);
+        backgroundPanel.add(usernameLabel);
+        backgroundPanel.add(usernameField);
+
+        passwordLabel.setForeground(GOLD_TEXT);
+        backgroundPanel.add(passwordLabel);
+        backgroundPanel.add(passwordField);
+
+        statusLabel.setForeground(new Color(255, 120, 110));
+        backgroundPanel.add(statusLabel);
+
+        styleButton(updateButton);
+        backgroundPanel.add(updateButton);
+
+        styleButton(exitButton);
+        backgroundPanel.add(exitButton);
+
+        styleButton(loginButton);
+        backgroundPanel.add(loginButton);
+    }
+
+    /**
+     * Calcula y aplica las posiciones (setBounds) de todo el formulario a
+     * partir del tamaño actual de backgroundPanel. Se llama una vez al
+     * construir la ventana y de nuevo cada vez que se redimensiona (ver el
+     * ComponentListener del constructor), así que nunca usa el tamaño de
+     * ventana original salvo la primera vez.
+     */
+    private void layoutComponents(int w, int h) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+
+        int formWidth = Math.min(420, w - 80);
+        int formX = (w - formWidth) / 2;
+
+        int titleY = (int) (h * 0.18);
+        int fieldY = (int) (h * 0.30);
+        int buttonY = fieldY + 168;
+        int buttonHeight = 36;
+        int lowerButtonY = buttonY + buttonHeight + 12;
+
+        int backingPad = 24;
+        formBacking.setBounds(formX - backingPad, titleY - backingPad,
+                formWidth + backingPad * 2, (lowerButtonY + buttonHeight) - titleY + backingPad * 2);
+
+        titleLabel.setBounds(formX, titleY, formWidth, 40);
+        usernameLabel.setBounds(formX, fieldY, formWidth, 20);
+        usernameField.setBounds(formX, fieldY + 22, formWidth, 32);
+        passwordLabel.setBounds(formX, fieldY + 66, formWidth, 20);
+        passwordField.setBounds(formX, fieldY + 88, formWidth, 32);
+        statusLabel.setBounds(formX, fieldY + 128, formWidth, 24);
+        updateButton.setBounds(formX, buttonY, formWidth, buttonHeight);
+
+        int halfWidth = (formWidth - 10) / 2;
+        exitButton.setBounds(formX, lowerButtonY, halfWidth, buttonHeight);
+        loginButton.setBounds(formX + halfWidth + 10, lowerButtonY, halfWidth, buttonHeight);
+    }
+
+    /** Look "SunDStudios" para los botones: piedra oscura, borde dorado, texto claro. Mismo criterio en las tres. */
+    private static void styleButton(JButton button) {
+        button.setFocusPainted(false);
+        button.setFont(button.getFont().deriveFont(Font.BOLD, 13f));
+        button.setForeground(GOLD_TEXT);
+        button.setBackground(BUTTON_STONE);
+        button.setOpaque(true);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(GOLD_ACCENT, 1),
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+    }
+
+    private void updateLoginButtonState() {
+        boolean hasUsername = !usernameField.getText().trim().isEmpty();
+        boolean hasPassword = passwordField.getPassword().length > 0;
+        loginButton.setEnabled(hasUsername && hasPassword);
+    }
+
+    // ---- Getters expuestos para que Action/Controller se enganchen desde fuera ----
+
+    public JTextField getUsernameField() {
+        return usernameField;
+    }
+
+    public JPasswordField getPasswordField() {
+        return passwordField;
+    }
+
+    public JButton getLoginButton() {
+        return loginButton;
+    }
+
+    public JButton getExitButton() {
+        return exitButton;
+    }
+
+    public JButton getUpdateButton() {
+        return updateButton;
+    }
+
+    public void setStatus(String text) {
+        SwingUtilities.invokeLater(() -> statusLabel.setText(text));
+    }
+
+    public void setFormEnabled(boolean enabled) {
+        SwingUtilities.invokeLater(() -> {
+            usernameField.setEnabled(enabled);
+            passwordField.setEnabled(enabled);
+            exitButton.setEnabled(enabled);
+            if (enabled) {
+                updateLoginButtonState();
+            } else {
+                loginButton.setEnabled(false);
+            }
+        });
+    }
+
+    public void setUpdateButtonEnabled(boolean enabled) {
+        SwingUtilities.invokeLater(() -> updateButton.setEnabled(enabled));
+    }
+
+    public void prefillCredentials(String username, char[] password) {
+        SwingUtilities.invokeLater(() -> {
+            usernameField.setText(username);
+            passwordField.setText(new String(password));
+            updateLoginButtonState();
+        });
+    }
+
+    /**
+     * Igual que prefillCredentials, pero además dispara el login automáticamente
+     * (como si el jugador hubiera pulsado "Entrar") en cuanto usuario y contraseña
+     * quedan rellenos, en vez de esperar un click manual. Usa doClick() sobre el
+     * propio botón para reutilizar exactamente la misma validación que un click
+     * real (LoginAction ya enganchado desde Main), no una copia paralela de esa
+     * lógica.
+     */
+    public void prefillCredentialsAndAutoLogin(String username, char[] password) {
+        SwingUtilities.invokeLater(() -> {
+            usernameField.setText(username);
+            passwordField.setText(new String(password));
+            updateLoginButtonState();
+            if (loginButton.isEnabled()) {
+                loginButton.doClick();
+            }
+        });
+    }
+}
