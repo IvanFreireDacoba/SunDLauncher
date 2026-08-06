@@ -2,6 +2,7 @@ package es.sund.launcher;
 
 import es.sund.launcher.action.ExitAction;
 import es.sund.launcher.action.LoginAction;
+import es.sund.launcher.action.LogoutAction;
 import es.sund.launcher.action.PlayOrInstallAction;
 import es.sund.launcher.action.UninstallAction;
 import es.sund.launcher.action.UpdateLauncherAction;
@@ -89,6 +90,8 @@ public class Main {
     /** Se salta el login (bootstrapper) o viene de un login manual recién hecho: toca elegir instancia. */
     private static void showInstanceSelection(String username) {
         InstanceSelectionFrame frame = new InstanceSelectionFrame();
+        frame.getProfileScreen().getLogoutButton()
+                .addActionListener(new LogoutAction(frame, credentialStore, Main::showLoginScreen));
         frame.setVisible(true);
         frame.setStatus("Cargando juegos disponibles...");
 

@@ -33,9 +33,9 @@ public class MainFrame extends JFrame {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(new Color(18, 13, 10, 175));
+            g2.setColor(Theme.STONE_PANEL_FILL);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
-            g2.setColor(new Color(201, 154, 68, 130));
+            g2.setColor(Theme.STONE_BUTTON_BORDER);
             g2.setStroke(new BasicStroke(1.5f));
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
             g2.dispose();
@@ -52,10 +52,6 @@ public class MainFrame extends JFrame {
     private final JButton loginButton = new JButton("Entrar");
     private final JButton exitButton = new JButton("Salir");
     private final JButton updateButton = new JButton("Actualizar lanzador");
-
-    private static final Color GOLD_TEXT = new Color(242, 219, 165);
-    private static final Color GOLD_ACCENT = new Color(224, 178, 96);
-    private static final Color BUTTON_STONE = new Color(58, 50, 42);
 
     /** Tamaño mínimo para que el formulario no llegue a deformarse; sin máximo, la ventana admite pantalla completa. */
     private static final int MIN_WIDTH = 640;
@@ -114,15 +110,15 @@ public class MainFrame extends JFrame {
     /** Estilo y alta de todos los componentes en backgroundPanel; se hace una sola vez (nunca en cada resize). */
     private void buildComponents() {
         titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 22f));
-        titleLabel.setForeground(GOLD_TEXT);
+        titleLabel.setForeground(Theme.GOLD_TEXT);
         backgroundPanel.add(formBacking);
         backgroundPanel.add(titleLabel);
 
-        usernameLabel.setForeground(GOLD_TEXT);
+        usernameLabel.setForeground(Theme.GOLD_TEXT);
         backgroundPanel.add(usernameLabel);
         backgroundPanel.add(usernameField);
 
-        passwordLabel.setForeground(GOLD_TEXT);
+        passwordLabel.setForeground(Theme.GOLD_TEXT);
         backgroundPanel.add(passwordLabel);
         backgroundPanel.add(passwordField);
 
@@ -181,11 +177,11 @@ public class MainFrame extends JFrame {
     private static void styleButton(JButton button) {
         button.setFocusPainted(false);
         button.setFont(button.getFont().deriveFont(Font.BOLD, 13f));
-        button.setForeground(GOLD_TEXT);
-        button.setBackground(BUTTON_STONE);
+        button.setForeground(Theme.GOLD_TEXT);
+        button.setBackground(Theme.STONE_BUTTON);
         button.setOpaque(true);
         button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(GOLD_ACCENT, 1),
+                BorderFactory.createLineBorder(Theme.GOLD_ACCENT, 1),
                 BorderFactory.createEmptyBorder(6, 10, 6, 10)));
     }
 

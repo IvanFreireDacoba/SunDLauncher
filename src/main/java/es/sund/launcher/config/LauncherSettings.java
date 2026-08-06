@@ -19,8 +19,11 @@ public final class LauncherSettings {
     private static final Path FILE = new File(AppPaths.ROOT_DIR, "settings.properties").toPath();
     private static final String KEY_MINIMIZE_DURING_GAME = "minimizeDuringGame";
     private static final boolean DEFAULT_MINIMIZE_DURING_GAME = true;
+    private static final String KEY_LAUNCHER_THEME = "launcherTheme";
+    private static final String DEFAULT_LAUNCHER_THEME = "sundstudios";
 
     private static volatile Boolean minimizeDuringGameCache;
+    private static volatile String launcherThemeCache;
 
     public static boolean isMinimizeDuringGameEnabled() {
         if (minimizeDuringGameCache == null) {
@@ -34,6 +37,19 @@ public final class LauncherSettings {
         saveBoolean(KEY_MINIMIZE_DURING_GAME, enabled);
     }
 
+    /** Id del tema visual elegido ("classic"/"sundstudios"/"mmorpg"), ver Theme.LauncherPalette. */
+    public static String getLauncherTheme() {
+        if (launcherThemeCache == null) {
+            launcherThemeCache = loadString(KEY_LAUNCHER_THEME, DEFAULT_LAUNCHER_THEME);
+        }
+        return launcherThemeCache;
+    }
+
+    public static void setLauncherTheme(String themeId) {
+        launcherThemeCache = themeId;
+        saveString(KEY_LAUNCHER_THEME, themeId);
+    }
+
     private static boolean loadBoolean(String key, boolean fallback) {
         String value = readAll().getProperty(key);
         return value != null ? Boolean.parseBoolean(value) : fallback;
@@ -42,6 +58,17 @@ public final class LauncherSettings {
     private static void saveBoolean(String key, boolean value) {
         Properties props = readAll();
         props.setProperty(key, String.valueOf(value));
+        writeAll(props);
+    }
+
+    private static String loadString(String key, String fallback) {
+        String value = readAll().getProperty(key);
+        return value != null ? value : fallback;
+    }
+
+    private static void saveString(String key, String value) {
+        Properties props = readAll();
+        props.setProperty(key, value);
         writeAll(props);
     }
 

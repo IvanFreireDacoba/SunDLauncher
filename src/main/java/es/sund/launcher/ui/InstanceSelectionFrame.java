@@ -272,6 +272,10 @@ public class InstanceSelectionFrame extends JFrame {
         return panelsByInstanceId.get(instanceId);
     }
 
+    public ProfileScreen getProfileScreen() {
+        return profileScreen;
+    }
+
     public void setStatus(String text) {
         SwingUtilities.invokeLater(() -> statusLabel.setText(text));
     }
