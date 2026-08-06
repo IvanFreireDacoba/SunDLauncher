@@ -87,8 +87,12 @@ if [ ! -x "$APPIMAGETOOL" ]; then
   chmod +x "$APPIMAGETOOL"
 fi
 
-# --appimage-extract-and-run evita depender de FUSE (necesario en runners de CI)
-"$APPIMAGETOOL" --appimage-extract-and-run "$APPDIR" \
+# --appimage-extract-and-run evita depender de FUSE (necesario en runners de CI).
+# ARCH=x86_64: el runtime de Java embebido en AppDir trae binarios de más de
+# una arquitectura (p.ej. jspawnhelper de 32 y 64 bits), así que appimagetool
+# no puede detectarla sola y falla con "More than one architectures were
+# found" si no se le dice explícitamente cuál usar.
+ARCH=x86_64 "$APPIMAGETOOL" --appimage-extract-and-run "$APPDIR" \
   "target/dist/SunDLauncher-x86_64.AppImage" >/dev/null
 
 echo "==> comprimiendo en zip para repartir"
