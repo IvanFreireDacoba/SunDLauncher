@@ -41,6 +41,18 @@ final class NbtServersFile {
     static final byte TAG_INT_ARRAY = 11;
     static final byte TAG_LONG_ARRAY = 12;
 
+    /**
+     * Límites de cordura, no del formato NBT en sí: un servers.dat real tiene como mucho unas
+     * pocas decenas de entradas y ningún array grande (el icono va en un TAG_String en base64,
+     * ya acotado a 65535 bytes por el propio formato de DataInputStream#readUTF). Sin esto, un
+     * fichero corrupto o manipulado a mano con una longitud de array/lista o un anidamiento de
+     * TAG_List/TAG_Compound absurdos podría intentar reservar gigabytes de golpe (OutOfMemoryError)
+     * o desbordar la pila por recursión (StackOverflowError) — ninguno de los dos es una
+     * RuntimeException, así que ni siquiera los capturaría el fallback de ServerListMerger.
+     */
+    private static final int MAX_COLLECTION_LENGTH = 100_000;
+    private static final int MAX_DEPTH = 256;
+
     /** Un tag con nombre dentro de un compound: type es uno de los TAG_* de arriba. */
     record Tag(byte type, Object value) {}
 
@@ -54,7 +66,7 @@ final class NbtServersFile {
                 throw new IOException("Se esperaba un TAG_Compound raíz, encontrado tipo " + rootType);
             }
             in.readUTF(); // nombre del tag raíz (normalmente vacío), se descarta
-            return readCompoundBody(in);
+            return readCompoundBody(in, 0);
         }
     }
 
@@ -66,7 +78,10 @@ final class NbtServersFile {
         }
     }
 
-    private static Map<String, Tag> readCompoundBody(DataInputStream in) throws IOException {
+    private static Map<String, Tag> readCompoundBody(DataInputStream in, int depth) throws IOException {
+        if (depth > MAX_DEPTH) {
+            throw new IOException("NBT anidado demasiado profundo (posible fichero corrupto o malicioso)");
+        }
         Map<String, Tag> map = new LinkedHashMap<>();
         while (true) {
             byte type = in.readByte();
@@ -74,7 +89,7 @@ final class NbtServersFile {
                 return map;
             }
             String name = in.readUTF();
-            map.put(name, new Tag(type, readPayload(in, type)));
+            map.put(name, new Tag(type, readPayload(in, type, depth)));
         }
     }
 
@@ -88,7 +103,7 @@ final class NbtServersFile {
         out.writeByte(TAG_END);
     }
 
-    private static Object readPayload(DataInputStream in, byte type) throws IOException {
+    private static Object readPayload(DataInputStream in, byte type, int depth) throws IOException {
         switch (type) {
             case TAG_BYTE:
                 return in.readByte();
@@ -103,7 +118,7 @@ final class NbtServersFile {
             case TAG_DOUBLE:
                 return in.readDouble();
             case TAG_BYTE_ARRAY: {
-                int len = in.readInt();
+                int len = readCollectionLength(in);
                 byte[] bytes = new byte[len];
                 in.readFully(bytes);
                 return bytes;
@@ -112,23 +127,23 @@ final class NbtServersFile {
                 return in.readUTF();
             case TAG_LIST: {
                 byte elementType = in.readByte();
-                int len = in.readInt();
-                List<Object> list = new ArrayList<>(Math.max(len, 0));
+                int len = readCollectionLength(in);
+                List<Object> list = new ArrayList<>(Math.min(len, 1024));
                 for (int i = 0; i < len; i++) {
-                    list.add(readPayload(in, elementType));
+                    list.add(readPayload(in, elementType, depth + 1));
                 }
                 return new NbtList(elementType, list);
             }
             case TAG_COMPOUND:
-                return readCompoundBody(in);
+                return readCompoundBody(in, depth + 1);
             case TAG_INT_ARRAY: {
-                int len = in.readInt();
+                int len = readCollectionLength(in);
                 int[] ints = new int[len];
                 for (int i = 0; i < len; i++) ints[i] = in.readInt();
                 return ints;
             }
             case TAG_LONG_ARRAY: {
-                int len = in.readInt();
+                int len = readCollectionLength(in);
                 long[] longs = new long[len];
                 for (int i = 0; i < len; i++) longs[i] = in.readLong();
                 return longs;
@@ -136,6 +151,16 @@ final class NbtServersFile {
             default:
                 throw new IOException("Tipo de tag NBT no soportado: " + type);
         }
+    }
+
+    /** Lee una longitud de array/lista y la valida contra MAX_COLLECTION_LENGTH antes de reservar memoria para ella. */
+    private static int readCollectionLength(DataInputStream in) throws IOException {
+        int len = in.readInt();
+        if (len < 0 || len > MAX_COLLECTION_LENGTH) {
+            throw new IOException("Longitud de array/lista NBT fuera de rango (" + len
+                    + "), posible fichero corrupto o malicioso");
+        }
+        return len;
     }
 
     @SuppressWarnings("unchecked")

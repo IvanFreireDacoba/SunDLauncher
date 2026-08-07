@@ -129,22 +129,45 @@ public final class DownloadUtil {
         }
     }
 
-    /** Extrae un zip íntegro sobre targetDir, respetando la estructura de carpetas de las entradas. */
+    /**
+     * Extrae un zip íntegro sobre targetDir, respetando la estructura de carpetas de las entradas.
+     *
+     * Valida cada entrada contra "Zip Slip" (CVE genérico de toda librería de zip que confía en
+     * ZipEntry#getName() a pelo): un .zip puede traer nombres de entrada como
+     * "../../../.credkey" o una ruta absoluta ("/etc/..." o "C:\\...") que, sin comprobar,
+     * escribirían fuera de targetDir. Como el contenido de estos zips viene de una URL que
+     * manda el backend (instancePackUrl/configPackUrl), un backend comprometido o una respuesta
+     * manipulada podría usar esto para sobrescribir ficheros arbitrarios del usuario (incluidos
+     * credentials.dat/.credkey, que viven en el mismo ROOT_DIR que usa LauncherUpdateService como
+     * destino de extracción). Se resuelve cada entrada contra targetDir y se aborta toda la
+     * extracción si el resultado se sale de targetDir, en vez de extraer entradas sueltas y dejar
+     * el resto a medias.
+     */
     public static void unzip(File zipFile, File targetDir) throws IOException {
+        Path targetRoot = targetDir.toPath().normalize();
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                File outFile = new File(targetDir, entry.getName());
+                Path outPath = resolveZipEntry(targetRoot, entry.getName());
                 if (entry.isDirectory()) {
-                    outFile.mkdirs();
+                    Files.createDirectories(outPath);
                     continue;
                 }
-                outFile.getParentFile().mkdirs();
-                try (OutputStream os = Files.newOutputStream(outFile.toPath())) {
+                Files.createDirectories(outPath.getParent());
+                try (OutputStream os = Files.newOutputStream(outPath)) {
                     zis.transferTo(os);
                 }
             }
         }
+    }
+
+    /** Resuelve una entrada de zip contra targetRoot, rechazando cualquiera que escape de él (Zip Slip). */
+    private static Path resolveZipEntry(Path targetRoot, String entryName) throws IOException {
+        Path resolved = targetRoot.resolve(entryName).normalize();
+        if (!resolved.startsWith(targetRoot)) {
+            throw new IOException("Entrada de zip fuera del directorio de destino (posible Zip Slip): \"" + entryName + "\"");
+        }
+        return resolved;
     }
 
     public static void deleteRecursive(Path path) throws IOException {

@@ -17,7 +17,9 @@ import java.nio.file.attribute.AclEntry;
 import java.nio.file.attribute.AclEntryPermission;
 import java.nio.file.attribute.AclEntryType;
 import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.attribute.UserPrincipal;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
@@ -64,8 +66,7 @@ public class EncryptedFileCredentialStore implements CredentialStore {
             System.arraycopy(iv, 0, fileContent, 0, iv.length);
             System.arraycopy(ciphertext, 0, fileContent, iv.length, ciphertext.length);
 
-            Files.write(AppPaths.CREDENTIALS_FILE.toPath(), fileContent);
-            restrictToOwnerOnly(AppPaths.CREDENTIALS_FILE.toPath());
+            writeOwnerOnly(AppPaths.CREDENTIALS_FILE.toPath(), fileContent);
 
         } catch (GeneralSecurityException | IOException e) {
             throw new CredentialStorageException("No se pudieron guardar las credenciales de forma segura", e);
@@ -132,9 +133,35 @@ public class EncryptedFileCredentialStore implements CredentialStore {
         keyGenerator.init(KEY_SIZE_BITS);
         SecretKey key = keyGenerator.generateKey();
 
-        Files.write(keyPath, key.getEncoded());
-        restrictToOwnerOnly(keyPath);
+        writeOwnerOnly(keyPath, key.getEncoded());
         return key;
+    }
+
+    /**
+     * Escribe contenido en un fichero nuevo con los permisos restrictivos ya aplicados desde su
+     * creación (en vez de crear con los permisos por defecto del SO y restringir después). Sin
+     * esto, entre el "Files.write" que crea el fichero y el "chmod"/ACL posterior había una
+     * ventana breve en la que, en Linux/Mac con un umask permisivo (p.ej. 022, bastante común),
+     * el fichero era mundialmente legible: otro usuario del mismo sistema con un proceso
+     * vigilando el directorio (inotify) podría leer la clave de cifrado o el fichero de
+     * credenciales cifrado durante esa ventana. Al crear el fichero ya con permisos de solo
+     * propietario (POSIX) no existe ese hueco. En Windows no hay equivalente NIO para "crear ya
+     * con esta ACL" en una sola llamada, así que se mantiene el camino de crear + restringir ACL
+     * inmediatamente después.
+     */
+    private void writeOwnerOnly(Path path, byte[] content) throws IOException {
+        if (!Files.exists(path)) {
+            Set<String> supportedViews = path.getFileSystem().supportedFileAttributeViews();
+            if (supportedViews.contains("posix")) {
+                FileAttribute<Set<PosixFilePermission>> ownerOnlyAttr = PosixFilePermissions.asFileAttribute(
+                        EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+                Files.createFile(path, ownerOnlyAttr);
+            } else {
+                Files.createFile(path);
+            }
+        }
+        Files.write(path, content);
+        restrictToOwnerOnly(path);
     }
 
     /** Restringe el fichero al usuario propietario: permisos 600 en Linux/Mac, ACL propietario-only en Windows. */

@@ -52,6 +52,39 @@ Si alguna vez tienes acceso directo a una máquina Windows o Mac, también
 puedes lanzar `packaging/build-windows.ps1` o `packaging/build-macos.sh`
 ahí mismo, sin pasar por GitHub Actions.
 
+## Firma de código en Windows (Microsoft Trusted Signing)
+
+Sin firmar, el `.exe` dispara el aviso de SmartScreen ("Windows protegió tu
+PC" / editor no reconocido). `build-windows.ps1` ya sabe firmar con
+[Microsoft Trusted Signing](https://learn.microsoft.com/azure/trusted-signing/),
+pero lo hace de forma opcional: si no encuentra las variables de entorno de
+abajo, genera el `.exe` sin firmar exactamente igual que hasta ahora, no
+rompe el build.
+
+Para activarla:
+
+1. En Azure, crea una cuenta de Trusted Signing y un perfil de certificado
+   (identity validation de persona física o empresa).
+2. Crea un App registration (service principal) y dale el rol **"Trusted
+   Signing Certificate Profile Signer"** sobre ese perfil de certificado.
+3. Añade estos 6 secrets en el repo de GitHub (`Settings` → `Secrets and
+   variables` → `Actions`) — el workflow (`.github/workflows/release.yml`)
+   ya los pasa al job de Windows:
+   - `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` (del
+     service principal del paso 2)
+   - `TRUSTED_SIGNING_ENDPOINT` (p.ej. `https://eus.codesigning.azure.net/`)
+   - `TRUSTED_SIGNING_ACCOUNT` (nombre de la cuenta de Trusted Signing)
+   - `TRUSTED_SIGNING_CERT_PROFILE` (nombre del perfil de certificado)
+
+La firma se sella con timestamp (RFC 3161), así que un `.exe` firmado sigue
+siendo válido para siempre aunque más adelante se cancele la suscripción de
+Azure — solo hace falta tenerla activa el mes en que firmes cada build que
+vayas a repartir, no de forma permanente.
+
+macOS necesitaría el equivalente con una cuenta de Apple Developer
+(certificado "Developer ID Application" + notarización); no está integrado
+todavía.
+
 ## Iconos
 
 `icons/SunDLauncher.ico` (Windows), `.icns` (macOS) y `.png` (Linux) son
