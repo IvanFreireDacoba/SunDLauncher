@@ -50,10 +50,12 @@ public class PlayOrInstallAction implements ActionListener {
 
     /** Tras un fallo, vuelve al estado correcto según lo que de verdad haya en disco (no lo que hubiera antes de intentarlo). */
     private void restoreIdleState() {
-        if (InstanceInstallStatus.isInstalled(instance)) {
-            panel.showInstalled();
-        } else {
+        if (!InstanceInstallStatus.isInstalled(instance)) {
             panel.showNotInstalled();
+        } else if (InstanceInstallStatus.isUpdateAvailable(instance)) {
+            panel.showUpdateAvailable();
+        } else {
+            panel.showInstalled();
         }
     }
 }

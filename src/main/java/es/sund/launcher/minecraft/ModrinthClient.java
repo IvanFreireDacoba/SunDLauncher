@@ -72,8 +72,28 @@ public class ModrinthClient {
         return pickPrimaryFile(chosen, slug);
     }
 
+    /** Segmentos de tipo de proyecto que puede llevar una URL de Modrinth justo antes del slug. */
+    private static final List<String> MODRINTH_PROJECT_TYPE_SEGMENTS =
+            List.of("resourcepack", "mod", "modpack", "plugin", "shader", "datapack", "project");
+
+    /**
+     * Extrae el slug de una URL de proyecto de Modrinth. No asume que el slug es el
+     * último segmento: algunas entradas de resourcepack.json enlazan directamente a
+     * una versión concreta (p.ej. ".../resourcepack/<slug>/version/1.20B"), y tomar
+     * el último segmento a ciegas devolvería "1.20B" en vez del slug real, rompiendo
+     * la resolución contra la API (404 silencioso). En su lugar se busca el segmento
+     * de tipo de proyecto conocido y se toma el siguiente; si no aparece ninguno
+     * (URL ya es solo el slug, o un formato no contemplado), se cae al último
+     * segmento como antes.
+     */
     private static String extractSlug(String modrinthProjectUrl) {
         String trimmed = modrinthProjectUrl.replaceAll("/+$", "");
+        String[] segments = trimmed.split("/");
+        for (int i = 0; i < segments.length - 1; i++) {
+            if (MODRINTH_PROJECT_TYPE_SEGMENTS.contains(segments[i])) {
+                return segments[i + 1];
+            }
+        }
         int lastSlash = trimmed.lastIndexOf('/');
         return lastSlash >= 0 ? trimmed.substring(lastSlash + 1) : trimmed;
     }

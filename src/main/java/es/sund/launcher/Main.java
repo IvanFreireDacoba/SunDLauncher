@@ -115,15 +115,18 @@ public class Main {
 
     private static void applyInstallState(InstancePanel panel, GameInstance instance) {
         boolean installed = InstanceInstallStatus.isInstalled(instance);
+        boolean updateAvailable = installed && InstanceInstallStatus.isUpdateAvailable(instance);
 
         StringBuilder details = new StringBuilder("Minecraft ").append(instance.mcVersion);
         if (instance.fabricLoaderVersion != null && !instance.fabricLoaderVersion.isBlank()) {
             details.append(" · Fabric ").append(instance.fabricLoaderVersion);
         }
-        details.append(" · ").append(installed ? "Instalado" : "No instalado");
+        details.append(" · ").append(!installed ? "No instalado" : updateAvailable ? "Actualización disponible" : "Instalado");
         panel.setInstanceInfo(instance.name, details.toString());
 
-        if (installed) {
+        if (updateAvailable) {
+            panel.showUpdateAvailable();
+        } else if (installed) {
             panel.showInstalled();
         } else {
             panel.showNotInstalled();

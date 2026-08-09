@@ -40,6 +40,7 @@ import java.util.List;
 public class InstanceContentInstaller {
 
     private static final String INSTANCE_PACK_MARKER_FILE = ".instance_pack.sha1";
+    private static final String MANAGED_MODS_MARKER_FILE = ".managed_mods.json";
 
     private final AppPaths.InstancePaths paths;
     private final ProgressListener listener;
@@ -49,6 +50,24 @@ public class InstanceContentInstaller {
     public InstanceContentInstaller(AppPaths.InstancePaths paths, ProgressListener listener) {
         this.paths = paths;
         this.listener = listener;
+    }
+
+    /**
+     * Hash del instance-pack que ya está aplicado en disco, o null si nunca se aplicó
+     * ninguno todavía. Usado también por InstanceInstallStatus para decidir, sin tocar
+     * la red, si el botón debe ofrecer "Actualizar" (el marcador no coincide con el
+     * instancePackSha1 recién obtenido de GameCatalog).
+     */
+    public static String readAppliedInstancePackSha1(AppPaths.InstancePaths paths) {
+        Path marker = new File(paths.root, INSTANCE_PACK_MARKER_FILE).toPath();
+        if (!Files.exists(marker)) {
+            return null;
+        }
+        try {
+            return Files.readString(marker, StandardCharsets.UTF_8).trim();
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     public void install(GameInstance instance) throws InstallationException {
@@ -72,11 +91,9 @@ public class InstanceContentInstaller {
         }
 
         Path marker = new File(paths.root, INSTANCE_PACK_MARKER_FILE).toPath();
-        if (instance.instancePackSha1 != null && Files.exists(marker)) {
-            String appliedSha1 = Files.readString(marker, StandardCharsets.UTF_8).trim();
-            if (instance.instancePackSha1.equalsIgnoreCase(appliedSha1)) {
-                return; // ya aplicado, nada que hacer
-            }
+        String appliedSha1 = readAppliedInstancePackSha1(paths);
+        if (instance.instancePackSha1 != null && instance.instancePackSha1.equalsIgnoreCase(appliedSha1)) {
+            return; // ya aplicado, nada que hacer
         }
 
         Path zipTarget = new File(paths.root, "instance-pack.zip").toPath();
@@ -140,22 +157,50 @@ public class InstanceContentInstaller {
             return;
         }
 
+        List<String> managedFileNames = new ArrayList<>();
         for (ModpackDefinition.ModEntry mod : modpack.mods) {
+            String fileName;
             if (mod.directUrl != null) {
                 // Mods fuera de Modrinth (p.ej. FTB, vía CurseForge): el backend ya resolvió
                 // el enlace real de descarga al generar modpack.json, aquí solo se descarga.
-                String fileName = mod.fileName != null ? mod.fileName : new File(mod.directUrl).getName();
+                fileName = mod.fileName != null ? mod.fileName : new File(mod.directUrl).getName();
                 Path dest = new File(paths.modsDir, fileName).toPath();
                 DownloadUtil.downloadFile(mod.directUrl, dest, mod.sha1, "Mod " + fileName, listener);
-                continue;
+            } else {
+                ModrinthVersionResponse.ModrinthFile file = modrinthClient.resolvePrimaryFile(mod.modrinthVersionId);
+                fileName = mod.fileName != null ? mod.fileName : file.filename;
+                String sha1 = mod.sha1 != null ? mod.sha1 : (file.hashes != null ? file.hashes.sha1 : null);
+                Path dest = new File(paths.modsDir, fileName).toPath();
+                DownloadUtil.downloadFile(file.url, dest, sha1, "Mod " + fileName, listener);
             }
-
-            ModrinthVersionResponse.ModrinthFile file = modrinthClient.resolvePrimaryFile(mod.modrinthVersionId);
-            String fileName = mod.fileName != null ? mod.fileName : file.filename;
-            String sha1 = mod.sha1 != null ? mod.sha1 : (file.hashes != null ? file.hashes.sha1 : null);
-            Path dest = new File(paths.modsDir, fileName).toPath();
-            DownloadUtil.downloadFile(file.url, dest, sha1, "Mod " + fileName, listener);
+            managedFileNames.add(fileName);
         }
+
+        removeUnmanagedMods(managedFileNames);
+    }
+
+    /**
+     * Borra de mods/ los ficheros que una instalación anterior de este mismo modpack.json
+     * gestionaba pero que ya no aparecen en la lista actual (p.ej. un admin quitó un mod
+     * del catálogo). Se distingue de "cualquier archivo suelto en mods/" con un marcador
+     * propio (MANAGED_MODS_MARKER_FILE) para no tocar nunca automodpack.jar (viene del
+     * instance-pack, no de aquí) ni ningún mod que el jugador haya añadido por su cuenta.
+     */
+    private void removeUnmanagedMods(List<String> currentFileNames) throws IOException {
+        Path marker = new File(paths.root, MANAGED_MODS_MARKER_FILE).toPath();
+        if (Files.exists(marker)) {
+            Type listType = new TypeToken<List<String>>() {}.getType();
+            List<String> previousFileNames = gson.fromJson(
+                    Files.readString(marker, StandardCharsets.UTF_8), listType);
+            if (previousFileNames != null) {
+                for (String fileName : previousFileNames) {
+                    if (!currentFileNames.contains(fileName)) {
+                        Files.deleteIfExists(new File(paths.modsDir, fileName).toPath());
+                    }
+                }
+            }
+        }
+        Files.writeString(marker, gson.toJson(currentFileNames), StandardCharsets.UTF_8);
     }
 
     private void installResourcepacks(GameInstance instance) throws IOException, InterruptedException, InstallationException {

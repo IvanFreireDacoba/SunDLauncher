@@ -201,6 +201,17 @@ public class InstancePanel extends JPanel {
         });
     }
 
+    /** Instalada pero con el contenido desactualizado: botón "Actualizar" + "Desinstalar". Pulsarlo vuelve a descargar el instance-pack y sobreescribe lo que haga falta. */
+    public void showUpdateAvailable() {
+        SwingUtilities.invokeLater(() -> {
+            actionButton.setText("Actualizar");
+            actionButton.setEnabled(true);
+            uninstallButton.setVisible(true);
+            uninstallButton.setEnabled(true);
+            bottomCards.show(bottomContent, CARD_CONTROLS);
+        });
+    }
+
     /** No instalada: solo el botón "Instalar" (nunca se puede desinstalar lo que no existe). */
     public void showNotInstalled() {
         SwingUtilities.invokeLater(() -> {
