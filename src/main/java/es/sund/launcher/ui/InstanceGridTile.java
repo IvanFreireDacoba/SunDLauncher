@@ -30,6 +30,7 @@ public class InstanceGridTile extends JButton {
     private static final long serialVersionUID = 1L;
 
     private BufferedImage backgroundImage;
+    private BufferedImage logoImage;
     private final JLabel nameLabel = new JLabel();
     private boolean selected;
 
@@ -64,6 +65,16 @@ public class InstanceGridTile extends JButton {
             backgroundImage = in != null ? ImageIO.read(in) : null;
         } catch (IOException e) {
             backgroundImage = null;
+        }
+        repaint();
+    }
+
+    /** Carga el logo de la instancia (opcional: si el recurso no existe, sencillamente no se dibuja ninguno). */
+    public void setLogoImageResource(String resourcePath) {
+        try (InputStream in = getClass().getResourceAsStream(resourcePath)) {
+            logoImage = in != null ? ImageIO.read(in) : null;
+        } catch (IOException e) {
+            logoImage = null;
         }
         repaint();
     }
@@ -104,26 +115,19 @@ public class InstanceGridTile extends JButton {
             // deformarse, recortando el sobrante por los lados o por arriba/abajo
             // según haga falta -no siempre un cuadrado, como antes-, según la
             // proporción real de la franja (que cambia con el ancho de la ventana).
-            int imgW = backgroundImage.getWidth();
-            int imgH = backgroundImage.getHeight();
-            double targetAspect = (double) w / h;
-            double sourceAspect = (double) imgW / imgH;
-            int sx, sy, sw, sh;
-            if (sourceAspect > targetAspect) {
-                sh = imgH;
-                sw = (int) Math.round(imgH * targetAspect);
-                sx = (imgW - sw) / 2;
-                sy = 0;
-            } else {
-                sw = imgW;
-                sh = (int) Math.round(imgW / targetAspect);
-                sx = 0;
-                sy = (imgH - sh) / 2;
-            }
-            g2.drawImage(backgroundImage, 0, 0, w, h, sx, sy, sx + sw, sy + sh, this);
+            ImageScaling.drawCover(g2, backgroundImage, w, h);
         } else {
             g2.setColor(Theme.STONE_BUTTON);
             g2.fillRect(0, 0, w, h);
+        }
+
+        // Logo de la instancia centrado sobre la franja, sin deformarse y sin
+        // tapar el nombre de abajo (limitado a una franja alta a partir del
+        // borde superior). Si la instancia no tiene logo.png propio, no se
+        // dibuja nada (fallback silencioso, ver setLogoImageResource).
+        if (logoImage != null && w > 0 && h > 0) {
+            int logoAreaH = Math.max(0, h - InstanceSelectionFrame.INSTANCE_TILE_HEIGHT / 3);
+            ImageScaling.drawContain(g2, logoImage, w, logoAreaH, 0.7);
         }
 
         if (selected) {

@@ -37,11 +37,16 @@ public class BackgroundPanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g.create();
         if (backgroundImage != null) {
-            g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+            // Recorte centrado ("cover"): antes se estiraba a getWidth()/getHeight()
+            // exactos, deformando la imagen cada vez que la ventana cambiaba de
+            // proporción (ver ImageScaling, mismo fix que InstancePanel/InstanceGridTile).
+            ImageScaling.drawCover(g2, backgroundImage, getWidth(), getHeight());
         } else {
-            g.setColor(Color.WHITE);
-            g.fillRect(0, 0, getWidth(), getHeight());
+            g2.setColor(Color.WHITE);
+            g2.fillRect(0, 0, getWidth(), getHeight());
         }
+        g2.dispose();
     }
 }
