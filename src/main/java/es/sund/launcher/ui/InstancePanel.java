@@ -276,11 +276,11 @@ public class InstancePanel extends JPanel {
 
     /**
      * Acabado decorativo opcional (marco rojo + "lente" azul al estilo Pokédex),
-     * pensado para CobbleSpain. Se dibuja con Graphics2D en proporción al tamaño
+     * activado cuando el jugador elige el tema Theme.LauncherPalette.COBBLESPAIN
+     * en ProfileScreen -no depende de qué instancia se muestre, ver
+     * InstanceSelectionFrame-. Se dibuja con Graphics2D en proporción al tamaño
      * real del panel -nunca una imagen aparte-, así que nunca se deforma ni
-     * queda pixelado al redimensionar la ventana. No toca Theme (sigue siendo
-     * el mismo para todas las instancias), es puramente un añadido visual de
-     * esta instancia en concreto.
+     * queda pixelado al redimensionar la ventana.
      */
     public void setPokedexStyle(boolean pokedexStyle) {
         this.pokedexStyle = pokedexStyle;

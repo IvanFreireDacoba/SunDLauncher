@@ -218,11 +218,11 @@ public class InstanceSelectionFrame extends JFrame {
             InstancePanel detailPanel = new InstancePanel();
             detailPanel.setBackgroundImageResource(String.format(AppConstants.INSTANCE_BACKGROUND_RESOURCE_PATTERN, instance.id));
             detailPanel.setLogoImageResource(String.format(AppConstants.INSTANCE_LOGO_RESOURCE_PATTERN, instance.id));
-            // Único sitio de todo el pipeline con una referencia por nombre a una
-            // instancia en concreto (a propósito, ver README): el resto del código
-            // es genérico por id, pero este acabado Pokédex es branding específico
-            // de CobbleSpain, no un mecanismo que otra instancia deba heredar.
-            detailPanel.setPokedexStyle("CobbleSpain".equals(instance.name));
+            // El acabado Pokédex es un tema visual seleccionable (ProfileScreen →
+            // Theme.LauncherPalette.COBBLESPAIN), igual que en la web (/perfil);
+            // no depende de qué instancia se esté mostrando, así que se aplica a
+            // todas por igual cuando el jugador elige ese tema, no solo a CobbleSpain.
+            detailPanel.setPokedexStyle(Theme.CURRENT == Theme.LauncherPalette.COBBLESPAIN);
             panelsByInstanceId.put(instance.id, detailPanel);
             detailCards.add(detailPanel, String.valueOf(instance.id));
 

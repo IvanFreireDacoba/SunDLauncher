@@ -22,11 +22,12 @@ import java.awt.Color;
  */
 final class Theme {
 
-    /** Los tres temas visuales del launcher, en paralelo con los de la web (classic/alternative/mmorpg). */
+    /** Los temas visuales del launcher, en paralelo con los de la web (classic/alternative/mmorpg/cobblespain). */
     enum LauncherPalette {
         CLASSIC("classic", "Clásico"),
         SUNDSTUDIOS("sundstudios", "SunDStudios"),
-        MMORPG("mmorpg", "Arcano (MMORPG)");
+        MMORPG("mmorpg", "Arcano (MMORPG)"),
+        COBBLESPAIN("cobblespain", "CobbleSpain");
 
         final String settingsId;
         final String displayName;
@@ -51,6 +52,9 @@ final class Theme {
         }
     }
 
+    /** Paleta activa, para que otros componentes (p.ej. InstancePanel) puedan condicionar un acabado a un tema en concreto sin duplicar el estado. */
+    static LauncherPalette CURRENT;
+
     static Color GOLD_TEXT;
     static Color GOLD_TEXT_MUTED;
     static Color GOLD_ACCENT;
@@ -74,6 +78,7 @@ final class Theme {
     }
 
     static void apply(LauncherPalette palette) {
+        CURRENT = palette;
         switch (palette) {
             case CLASSIC:
                 GOLD_TEXT = new Color(255, 255, 255);
@@ -100,6 +105,19 @@ final class Theme {
                 SIDEBAR_BACKGROUND = new Color(16, 12, 24);
                 SIDEBAR_DIVIDER = new Color(70, 55, 110);
                 SIDEBAR_SELECTED = new Color(181, 140, 255, 35);
+                break;
+            case COBBLESPAIN:
+                GOLD_TEXT = new Color(253, 243, 231);
+                GOLD_TEXT_MUTED = new Color(201, 162, 156);
+                GOLD_ACCENT = new Color(229, 57, 53);
+                STONE_PANEL_FILL = new Color(26, 10, 10, 195);
+                STONE_BUTTON = new Color(56, 24, 22);
+                STONE_BUTTON_BORDER = new Color(229, 57, 53, 140);
+                DANGER_TEXT = new Color(224, 130, 118);
+                DANGER_BORDER = new Color(150, 78, 68);
+                SIDEBAR_BACKGROUND = new Color(21, 8, 8);
+                SIDEBAR_DIVIDER = new Color(80, 35, 32);
+                SIDEBAR_SELECTED = new Color(229, 57, 53, 40);
                 break;
             case SUNDSTUDIOS:
             default:
