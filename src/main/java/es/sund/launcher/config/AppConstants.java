@@ -9,7 +9,7 @@ public interface AppConstants {
 
     // ---- Identidad de la aplicación ----
     String LAUNCHER_NAME = "SunDLauncher";
-    String CURRENT_LAUNCHER_VERSION = "1.1";
+    String CURRENT_LAUNCHER_VERSION = "1.0";
 
     // ---- Tu API (SunD.es) ----
     String API_BASE_URL = "https://sund.es/APIs";
