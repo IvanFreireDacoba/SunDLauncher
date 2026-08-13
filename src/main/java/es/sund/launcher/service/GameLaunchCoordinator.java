@@ -32,9 +32,28 @@ public class GameLaunchCoordinator {
 
 	public void launch(String username, GameInstance instance, InstancePanel panel, InstanceSelectionFrame frame,
 			SunDApiService apiService, CredentialStore credentialStore, Consumer<String> onFailure) {
+		GameSessionStarter sessionStarter =
+				new GameSessionStarter(instance, panel::showProgress, apiService, credentialStore);
+
+		// Si la instancia no está instalada o tiene contenido pendiente de actualizar, este
+		// clic es un "Instalar"/"Actualizar": se instala y se para ahí, sin lanzar Minecraft.
+		// Necesario para poder poner a instalar varias instancias a la vez sin que cada una,
+		// al terminar, abra el juego por su cuenta -el jugador pulsa "Jugar" aparte cuando
+		// quiera arrancar de verdad-. Solo una instancia ya lista de verdad (instalada y al
+		// día) llega más abajo a lanzar el proceso.
+		if (!InstanceInstallStatus.isReadyToPlay(instance)) {
+			try {
+				sessionStarter.ensureInstalled();
+				InstanceInstallStatus.refreshPanel(panel, instance);
+			} catch (InstallationException ex) {
+				SwingUtilities.invokeLater(() -> onFailure.accept("No se pudo instalar " + instance.name + ": " + ex.getMessage()));
+			} catch (RuntimeException ex) {
+				SwingUtilities.invokeLater(() -> onFailure.accept("No se pudo instalar " + instance.name + " (error inesperado): " + ex.getMessage()));
+			}
+			return;
+		}
+
 		try {
-			GameSessionStarter sessionStarter =
-					new GameSessionStarter(instance, panel::showProgress, apiService, credentialStore);
 			Process process = sessionStarter.start(username);
 			panel.showPlaying();
 

@@ -2,6 +2,7 @@ package es.sund.launcher.action;
 
 import es.sund.launcher.config.AppPaths;
 import es.sund.launcher.model.GameInstance;
+import es.sund.launcher.service.InstanceInstallStatus;
 import es.sund.launcher.ui.InstancePanel;
 import es.sund.launcher.util.DownloadUtil;
 
@@ -53,6 +54,6 @@ public class UninstallAction implements ActionListener {
             // .jar bloqueado por el antivirus); esto es solo una red de seguridad
             // adicional para no matar el hilo si algo más se escapa.
         }
-        panel.showNotInstalled();
+        InstanceInstallStatus.refreshPanel(panel, instance);
     }
 }

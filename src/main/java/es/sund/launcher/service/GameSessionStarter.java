@@ -44,6 +44,20 @@ public class GameSessionStarter {
         this.credentialStore = credentialStore;
     }
 
+    /**
+     * Instala lo que falte (vanilla, Fabric, contenido propio) SIN lanzar el juego. Usado
+     * cuando el botón pulsado era "Instalar"/"Actualizar" (ver GameLaunchCoordinator): el
+     * jugador puede poner a instalar varias instancias a la vez, y no debe encontrarse con
+     * que Minecraft se abre solo en cuanto cada una termina.
+     */
+    public void ensureInstalled() throws InstallationException {
+        minecraftInstaller.install(instance.mcVersion); // idempotente
+        fabricInstaller.install(instance.mcVersion, instance.fabricLoaderVersion); // idempotente
+        if (!InstanceInstallStatus.isInstalled(instance) || InstanceInstallStatus.isUpdateAvailable(instance)) {
+            contentInstaller.install(instance);
+        }
+    }
+
     /** Instala lo que falte y lanza Minecraft con una cuenta offline para el username dado. */
     public Process start(String username) throws InstallationException {
         // Limpia un token de una partida anterior que el mod nunca llegó a leer (crash, sin

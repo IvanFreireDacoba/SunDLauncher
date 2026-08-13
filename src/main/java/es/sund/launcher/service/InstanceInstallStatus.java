@@ -5,6 +5,7 @@ import es.sund.launcher.minecraft.FabricInstaller;
 import es.sund.launcher.minecraft.InstanceContentInstaller;
 import es.sund.launcher.minecraft.MinecraftInstaller;
 import es.sund.launcher.model.GameInstance;
+import es.sund.launcher.ui.InstancePanel;
 
 /** Comprueba en disco si una instancia (vanilla + Fabric) ya está instalada, sin tocar la red. */
 public final class InstanceInstallStatus {
@@ -13,6 +14,11 @@ public final class InstanceInstallStatus {
         AppPaths.InstancePaths paths = AppPaths.forInstance(instance.id);
         return MinecraftInstaller.isInstalled(paths, instance.mcVersion)
                 && FabricInstaller.isInstalled(paths, instance.mcVersion, instance.fabricLoaderVersion);
+    }
+
+    /** Instalada Y con el contenido al día: es el único caso en el que pulsar el botón debe lanzar el juego directamente. */
+    public static boolean isReadyToPlay(GameInstance instance) {
+        return isInstalled(instance) && !isUpdateAvailable(instance);
     }
 
     /**
@@ -48,6 +54,34 @@ public final class InstanceInstallStatus {
             return true;
         }
         return !remoteSha1.equalsIgnoreCase(appliedSha1);
+    }
+
+    /**
+     * Recalcula el estado en disco y refleja en el panel tanto el texto ("No instalado" /
+     * "Actualización disponible" / "Instalado") como el botón correspondiente. Único punto
+     * donde se construye ese texto: usado tanto al construir la pantalla de instancias
+     * (Main.bindInstances) como después de instalar/actualizar o de un fallo
+     * (GameLaunchCoordinator/PlayOrInstallAction), para que el estado mostrado sea siempre
+     * el que hay de verdad en disco, no el que había antes de la acción.
+     */
+    public static void refreshPanel(InstancePanel panel, GameInstance instance) {
+        boolean installed = isInstalled(instance);
+        boolean updateAvailable = installed && isUpdateAvailable(instance);
+
+        StringBuilder details = new StringBuilder("Minecraft ").append(instance.mcVersion);
+        if (instance.fabricLoaderVersion != null && !instance.fabricLoaderVersion.isBlank()) {
+            details.append(" · Fabric ").append(instance.fabricLoaderVersion);
+        }
+        details.append(" · ").append(!installed ? "No instalado" : updateAvailable ? "Actualización disponible" : "Instalado");
+        panel.setInstanceInfo(instance.name, details.toString());
+
+        if (updateAvailable) {
+            panel.showUpdateAvailable();
+        } else if (installed) {
+            panel.showInstalled();
+        } else {
+            panel.showNotInstalled();
+        }
     }
 
     private InstanceInstallStatus() {}

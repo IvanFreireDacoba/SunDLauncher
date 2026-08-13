@@ -12,12 +12,16 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 /**
- * Botón único por instancia que sirve tanto para "Instalar" como para "Jugar":
- * el texto cambia según InstanceInstallStatus, pero pulsarlo siempre hace lo
- * mismo (instalar lo que falte y lanzar). Cada instancia instala/juega en su
- * propio hilo, con su propio InstancePanel para pintar el progreso, así que
- * pulsar el botón de una instancia nunca bloquea, oculta ni cierra el resto
- * del launcher: se puede seguir navegando o lanzar otra instancia en paralelo.
+ * Botón único por instancia que sirve tanto para "Instalar"/"Actualizar" como
+ * para "Jugar": el texto cambia según InstanceInstallStatus, pero pulsarlo
+ * siempre delega en GameLaunchCoordinator, que decide qué hacer. Instalar/
+ * actualizar NUNCA lanza el juego automáticamente al terminar -para poder
+ * poner a instalar varias instancias a la vez sin que cada una abra Minecraft
+ * por su cuenta-, solo "Jugar" en una instancia ya lista lo hace. Cada
+ * instancia instala/juega en su propio hilo, con su propio InstancePanel para
+ * pintar el progreso, así que pulsar el botón de una instancia nunca bloquea,
+ * oculta ni cierra el resto del launcher: se puede seguir navegando o lanzar
+ * otra instancia en paralelo.
  */
 public class PlayOrInstallAction implements ActionListener {
 
@@ -57,12 +61,6 @@ public class PlayOrInstallAction implements ActionListener {
 
     /** Tras un fallo, vuelve al estado correcto según lo que de verdad haya en disco (no lo que hubiera antes de intentarlo). */
     private void restoreIdleState() {
-        if (!InstanceInstallStatus.isInstalled(instance)) {
-            panel.showNotInstalled();
-        } else if (InstanceInstallStatus.isUpdateAvailable(instance)) {
-            panel.showUpdateAvailable();
-        } else {
-            panel.showInstalled();
-        }
+        InstanceInstallStatus.refreshPanel(panel, instance);
     }
 }
