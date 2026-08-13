@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Empaqueta SunDLauncher como un único ejecutable AppImage para Linux, con
-# un runtime de Java 17 completo embebido dentro: el usuario final NO
+# un runtime de Java 21 completo embebido dentro: el usuario final NO
 # necesita tener Java instalado, ni descomprimir una carpeta con un bin/
 # dentro — descomprime el .zip y hace doble click en el .AppImage.
 #
-# Requiere solo el JDK 17 que ya usas en Eclipse (jpackage viene incluido
+# Requiere solo el JDK 21 que ya usas en Eclipse (jpackage viene incluido
 # desde el JDK 14, no hace falta instalar nada aparte). appimagetool se
 # descarga automáticamente la primera vez (se cachea en ~/.cache).
 #
@@ -21,7 +21,7 @@ cd "$(dirname "$0")/.."
 
 if ! command -v jpackage >/dev/null 2>&1; then
   echo "No se encuentra 'jpackage' en el PATH. Viene incluido en el JDK 14+"
-  echo "(el mismo JDK 17 que ya usas para compilar el proyecto), asegúrate"
+  echo "(el mismo JDK 21 que ya usas para compilar el proyecto), asegúrate"
   echo "de que JAVA_HOME apunta a esa instalación."
   exit 1
 fi
@@ -42,7 +42,7 @@ cp target/SunDLauncher.jar target/jpackage-input/
 # hostedtoolcache de los runners de GitHub Actions-, trata la raíz como un
 # fichero en vez de un directorio y falla con NoSuchFileException. Resolver
 # a la ruta real evita el problema.
-RUNTIME_IMAGE="$(readlink -f "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 17}")"
+RUNTIME_IMAGE="$(readlink -f "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 21}")"
 jpackage \
   --type app-image \
   --name SunDLauncher \

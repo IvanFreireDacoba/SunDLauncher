@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Empaqueta SunDLauncher como un instalador .pkg nativo de macOS, con un
-# runtime de Java 17 completo embebido: el usuario final no necesita tener
+# runtime de Java 21 completo embebido: el usuario final no necesita tener
 # Java instalado. Doble click en el .pkg -> instala la app en /Applications.
 #
-# Requiere un JDK 17+ (con jpackage) en macOS. Las herramientas de firma de
+# Requiere un JDK 21+ (con jpackage) en macOS. Las herramientas de firma de
 # Xcode (pkgbuild/productbuild) ya vienen con macos-latest en GitHub Actions.
 #
 # Nota: el .pkg no está firmado con un certificado de Apple Developer, así
@@ -21,7 +21,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if ! command -v jpackage >/dev/null 2>&1; then
-  echo "No se encuentra 'jpackage' en el PATH. Necesitas un JDK 17+ y JAVA_HOME configurado."
+  echo "No se encuentra 'jpackage' en el PATH. Necesitas un JDK 21+ y JAVA_HOME configurado."
   exit 1
 fi
 
@@ -42,7 +42,7 @@ cp target/SunDLauncher.jar target/jpackage-input/
 # con el hostedtoolcache de GitHub Actions; fix defensivo también aquí). Se
 # usa "cd + pwd -P" en vez de "readlink -f" porque el readlink de macOS (BSD)
 # no soporta -f.
-JAVA_HOME="$(cd "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 17}" && pwd -P)"
+JAVA_HOME="$(cd "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 21}" && pwd -P)"
 jpackage \
   --type pkg \
   --name SunDLauncher \
@@ -53,7 +53,7 @@ jpackage \
   --app-version "$VERSION" \
   --vendor "SunDStudios" \
   --mac-package-identifier es.sund.launcher \
-  --runtime-image "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 17}" \
+  --runtime-image "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 21}" \
   --dest target/dist
 
 echo "==> comprimiendo en zip para repartir"

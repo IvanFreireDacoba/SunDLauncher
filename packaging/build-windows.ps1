@@ -1,9 +1,9 @@
 # Empaqueta SunDLauncher como un instalador .exe nativo de Windows, con un
-# runtime de Java 17 completo embebido: el usuario final no necesita tener
+# runtime de Java 21 completo embebido: el usuario final no necesita tener
 # Java instalado. Doble click en el .exe -> instala la app (acceso directo
 # en el menu de inicio, entrada en "Agregar o quitar programas", etc.).
 #
-# Requiere: JDK 17+ (con jpackage) y el WiX Toolset v3 (choco install
+# Requiere: JDK 21+ (con jpackage) y el WiX Toolset v3 (choco install
 # wixtoolset). Los runners windows-latest de GitHub Actions ya traen ambos.
 #
 # La version se toma de <version> en pom.xml.
@@ -20,11 +20,11 @@ Set-Location (Join-Path $PSScriptRoot "..")
 $UPGRADE_UUID = "6ef41ac1-0103-4e8f-a460-f7efd74de510"
 
 if (-not (Get-Command jpackage -ErrorAction SilentlyContinue)) {
-    Write-Error "No se encuentra 'jpackage' en el PATH. Necesitas un JDK 17+ y JAVA_HOME configurado."
+    Write-Error "No se encuentra 'jpackage' en el PATH. Necesitas un JDK 21+ y JAVA_HOME configurado."
     exit 1
 }
 if (-not $env:JAVA_HOME) {
-    Write-Error "Define JAVA_HOME apuntando a tu JDK 17."
+    Write-Error "Define JAVA_HOME apuntando a tu JDK 21."
     exit 1
 }
 
