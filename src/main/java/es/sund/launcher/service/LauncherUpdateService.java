@@ -44,12 +44,22 @@ public class LauncherUpdateService {
         if (remote.configPackUrl == null || !remote.forceConfigUpdate) {
             return; // nada que actualizar a nivel de ficheros, solo cambia el número de versión mostrado
         }
+        // SEGURIDAD (auditoría 2026-08-13): antes se descargaba y extraía este zip sin
+        // verificar ningún hash (DownloadUtil.downloadFile(..., null, ...) desactiva la
+        // comprobación por completo) — un backend comprometido o una respuesta manipulada
+        // podía hacer aplicar contenido arbitrario sobre config/resourcepacks sin ninguna
+        // garantía de integridad. Ahora, sin configPackSha1 no se aplica nada: es mejor no
+        // actualizar la config que aplicar un zip sin verificar su procedencia.
+        if (remote.configPackSha1 == null || remote.configPackSha1.isBlank()) {
+            throw new LauncherUpdateException(
+                    "El servidor no proporcionó un hash de verificación (configPackSha1) para el paquete de configuración.");
+        }
         try {
             DownloadUtil.deleteRecursive(AppPaths.CONFIG_DIR.toPath());
             DownloadUtil.deleteRecursive(AppPaths.RESOURCEPACKS_DIR.toPath());
 
             Path zipTarget = new File(AppPaths.ROOT_DIR, "update-pack.zip").toPath();
-            DownloadUtil.downloadFile(remote.configPackUrl, zipTarget, null, "Paquete de actualización", null);
+            DownloadUtil.downloadFile(remote.configPackUrl, zipTarget, remote.configPackSha1, "Paquete de actualización", null);
             DownloadUtil.unzip(zipTarget.toFile(), AppPaths.ROOT_DIR);
             zipTarget.toFile().delete();
 

@@ -9,6 +9,9 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.net.URI;
 
 /**
  * Ventana principal. Esta clase SOLO construye y expone componentes de UI:
@@ -48,6 +51,8 @@ public class MainFrame extends JFrame {
     private final JTextField usernameField = new JTextField();
     private final JPasswordField passwordField = new JPasswordField();
     private final JLabel statusLabel = new JLabel(" ", SwingConstants.CENTER);
+    /** Enlace opcional bajo statusLabel: "¿No tienes cuenta? Crea una en SunD.es", ver setStatusWithAccountHint(). */
+    private final JLabel accountHintLabel = new JLabel(" ", SwingConstants.CENTER);
 
     private final JButton loginButton = new JButton("Entrar");
     private final JButton exitButton = new JButton("Salir");
@@ -125,6 +130,18 @@ public class MainFrame extends JFrame {
         statusLabel.setForeground(new Color(255, 120, 110));
         backgroundPanel.add(statusLabel);
 
+        accountHintLabel.setForeground(Theme.GOLD_TEXT);
+        accountHintLabel.setFont(accountHintLabel.getFont().deriveFont(Font.PLAIN, 12f));
+        accountHintLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (accountHintVisible) {
+                    openSunDWebsite();
+                }
+            }
+        });
+        backgroundPanel.add(accountHintLabel);
+
         styleButton(updateButton);
         backgroundPanel.add(updateButton);
 
@@ -165,7 +182,8 @@ public class MainFrame extends JFrame {
         usernameField.setBounds(formX, fieldY + 22, formWidth, 32);
         passwordLabel.setBounds(formX, fieldY + 66, formWidth, 20);
         passwordField.setBounds(formX, fieldY + 88, formWidth, 32);
-        statusLabel.setBounds(formX, fieldY + 128, formWidth, 24);
+        statusLabel.setBounds(formX, fieldY + 122, formWidth, 20);
+        accountHintLabel.setBounds(formX, fieldY + 142, formWidth, 18);
         updateButton.setBounds(formX, buttonY, formWidth, buttonHeight);
 
         int halfWidth = (formWidth - 10) / 2;
@@ -213,8 +231,46 @@ public class MainFrame extends JFrame {
         return updateButton;
     }
 
+    private boolean accountHintVisible = false;
+
     public void setStatus(String text) {
-        SwingUtilities.invokeLater(() -> statusLabel.setText(text));
+        SwingUtilities.invokeLater(() -> {
+            statusLabel.setText(text);
+            setAccountHintVisible(false);
+        });
+    }
+
+    /**
+     * Igual que setStatus, pero además muestra debajo un enlace clicable
+     * "¿No tienes cuenta? Crea una en SunD.es" que abre el navegador. Pensado
+     * para el caso de login fallido: el mensaje de error es siempre el mismo
+     * genérico ("usuario o contraseña incorrectos") tanto si la cuenta no
+     * existe como si la contraseña es la equivocada -nunca se distingue cuál
+     * de los dos casos es, para no filtrar qué nombres de usuario existen-,
+     * así que este enlace se ofrece siempre igual, sin depender de si la
+     * cuenta existe de verdad.
+     */
+    public void setStatusWithAccountHint(String text) {
+        SwingUtilities.invokeLater(() -> {
+            statusLabel.setText(text);
+            setAccountHintVisible(true);
+        });
+    }
+
+    private void setAccountHintVisible(boolean visible) {
+        accountHintVisible = visible;
+        accountHintLabel.setText(visible ? "<html><u>&iquest;No tienes cuenta? Crea una en SunD.es</u></html>" : " ");
+        accountHintLabel.setCursor(Cursor.getPredefinedCursor(visible ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
+    }
+
+    private void openSunDWebsite() {
+        try {
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(URI.create("https://sund.es"));
+            }
+        } catch (Exception ignored) {
+            // No crítico: si no se puede abrir el navegador, el jugador puede visitar sund.es a mano.
+        }
     }
 
     public void setFormEnabled(boolean enabled) {

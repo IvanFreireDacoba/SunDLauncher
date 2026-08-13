@@ -63,7 +63,7 @@ public class LoginAction implements ActionListener {
 		}
 
 		if (!response.success) {
-			fail(response.message != null ? response.message : "Usuario o contraseña incorrectos");
+			failWithAccountHint(response.message != null ? response.message : "Usuario o contraseña incorrectos");
 			return;
 		}
 
@@ -81,6 +81,12 @@ public class LoginAction implements ActionListener {
 
 	private void fail(String message) {
 		mainFrame.setStatus(message);
+		mainFrame.setFormEnabled(true);
+	}
+
+	/** Igual que fail(), pero para credenciales inválidas: ver MainFrame.setStatusWithAccountHint(). */
+	private void failWithAccountHint(String message) {
+		mainFrame.setStatusWithAccountHint(message);
 		mainFrame.setFormEnabled(true);
 	}
 }
