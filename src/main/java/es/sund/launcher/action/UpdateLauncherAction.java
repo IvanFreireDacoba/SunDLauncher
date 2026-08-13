@@ -71,8 +71,18 @@ public class UpdateLauncherAction implements ActionListener {
 
     private void openInBrowser(String url) {
         try {
+            URI uri = URI.create(url);
+            String scheme = uri.getScheme();
+            // launcherDownloadUrl viene del backend (VersionCheckResponse); si alguna vez se
+            // pudiera manipular esa respuesta, un esquema como "file:" haría que Desktop.browse
+            // delegue en el manejador local de ficheros (xdg-open/ShellExecute) en vez de un
+            // navegador, con riesgo de ejecutar algo local. Solo se permite http/https.
+            if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+                mainFrame.setStatus("Descarga disponible en: " + url);
+                return;
+            }
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                Desktop.getDesktop().browse(URI.create(url));
+                Desktop.getDesktop().browse(uri);
             }
         } catch (Exception ex) {
             // No es crítico: si no se puede abrir el navegador, el usuario aún puede

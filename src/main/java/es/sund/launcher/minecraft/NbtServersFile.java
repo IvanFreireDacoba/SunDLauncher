@@ -104,6 +104,14 @@ final class NbtServersFile {
     }
 
     private static Object readPayload(DataInputStream in, byte type, int depth) throws IOException {
+        // readCompoundBody ya comprueba MAX_DEPTH para el anidamiento vía TAG_Compound, pero
+        // TAG_List también recursa (una lista de listas) llamando aquí directamente sin pasar
+        // nunca por readCompoundBody, así que sin este segundo check un servers.dat con listas
+        // anidadas seguía pudiendo desbordar la pila (StackOverflowError, no es una
+        // RuntimeException y no lo captura ServerListMerger).
+        if (depth > MAX_DEPTH) {
+            throw new IOException("NBT anidado demasiado profundo (posible fichero corrupto o malicioso)");
+        }
         switch (type) {
             case TAG_BYTE:
                 return in.readByte();

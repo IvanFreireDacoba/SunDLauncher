@@ -6,6 +6,7 @@ import es.sund.launcher.util.OwnerOnlyFiles;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 /**
  * Escribe el token de sesión de juego de un solo uso que recoge el mod
@@ -33,5 +34,20 @@ public final class GameSessionTokenFile {
         File file = new File(instancePaths.root, FILE_NAME);
         String content = token + "\n" + minecraftUsername + "\n";
         OwnerOnlyFiles.writeOwnerOnly(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Borra el token si sigue en disco. El mod cliente lo borra en cuanto lo lee, pero eso
+     * solo ocurre si el jugador llega a conectarse a un servidor con sundauth -si juega en
+     * un solo jugador, el servidor está caído, o Minecraft se cierra antes de conectar, el
+     * token de la partida anterior se quedaría en disco en texto plano hasta el siguiente
+     * "Jugar"-. Se llama tanto antes de pedir uno nuevo como al terminar el proceso del juego.
+     */
+    public static void deleteIfExists(AppPaths.InstancePaths instancePaths) {
+        try {
+            Files.deleteIfExists(new File(instancePaths.root, FILE_NAME).toPath());
+        } catch (IOException ignored) {
+            // Best-effort de limpieza: un fallo aquí no debe impedir lanzar/cerrar el juego.
+        }
     }
 }

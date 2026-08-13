@@ -16,19 +16,38 @@ public final class InstanceInstallStatus {
     }
 
     /**
-     * Solo tiene sentido si la instancia ya está instalada. Compara, sin red, el hash del
-     * instance-pack (instancePackSha1, recién obtenido de GameCatalog) contra el marcador
-     * local que dejó la última vez que se aplicó (ver InstanceContentInstaller). Si no
-     * coincide, el contenido de la instancia (config/mods/servers.dat...) está desactualizado
-     * y el botón debe ofrecer "Actualizar" en vez de "Jugar".
+     * Solo tiene sentido si la instancia ya está instalada. Compara, sin red, los hashes del
+     * instance-pack/modpack.json/lista de resourcepacks (recién obtenidos de GameCatalog)
+     * contra los marcadores locales que dejó la última vez que se aplicó cada uno (ver
+     * InstanceContentInstaller). Si alguno no coincide, el contenido de la instancia está
+     * desactualizado y el botón debe ofrecer "Actualizar" en vez de "Jugar" — y
+     * GameSessionStarter usa este mismo resultado para decidir si hace falta volver a
+     * instalar contenido en absoluto antes de lanzar, o si puede ir directo al "Jugar" sin
+     * tocar la red (ver GameSessionStarter.start()).
      */
     public static boolean isUpdateAvailable(GameInstance instance) {
-        if (instance.instancePackUrl == null || instance.instancePackSha1 == null) {
+        AppPaths.InstancePaths paths = AppPaths.forInstance(instance.id);
+        return isStale(instance.instancePackUrl, instance.instancePackSha1,
+                    InstanceContentInstaller.readAppliedInstancePackSha1(paths))
+                || isStale(instance.modpackJsonUrl, instance.modpackJsonSha1,
+                    InstanceContentInstaller.readAppliedModpackJsonSha1(paths))
+                || isStale(instance.resourcepackJsonUrl, instance.resourcepackJsonSha1,
+                    InstanceContentInstaller.readAppliedResourcepackJsonSha1(paths));
+    }
+
+    /**
+     * remoteSha1 == null significa que el backend no manda hash para este contenido: no se
+     * puede confirmar que siga igual, así que se trata como "desactualizado" (conservador) en
+     * vez de asumir que no cambió nada.
+     */
+    private static boolean isStale(String url, String remoteSha1, String appliedSha1) {
+        if (url == null) {
             return false;
         }
-        AppPaths.InstancePaths paths = AppPaths.forInstance(instance.id);
-        String appliedSha1 = InstanceContentInstaller.readAppliedInstancePackSha1(paths);
-        return !instance.instancePackSha1.equalsIgnoreCase(appliedSha1);
+        if (remoteSha1 == null) {
+            return true;
+        }
+        return !remoteSha1.equalsIgnoreCase(appliedSha1);
     }
 
     private InstanceInstallStatus() {}

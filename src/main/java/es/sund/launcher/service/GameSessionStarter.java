@@ -46,15 +46,33 @@ public class GameSessionStarter {
 
     /** Instala lo que falte y lanza Minecraft con una cuenta offline para el username dado. */
     public Process start(String username) throws InstallationException {
+        // Limpia un token de una partida anterior que el mod nunca llegó a leer (crash, sin
+        // conexión al servidor, un solo jugador) antes de pedir uno nuevo.
+        GameSessionTokenFile.deleteIfExists(instancePaths);
+
         JsonObject vanillaJson = minecraftInstaller.install(instance.mcVersion); // idempotente
         JsonObject fabricJson = fabricInstaller.install(instance.mcVersion, instance.fabricLoaderVersion); // idempotente
-        contentInstaller.install(instance); // config/resources propios + mods/resourcepacks vía Modrinth, idempotente
+
+        // El contenido propio de la instancia (instance-pack, mods y resourcepacks vía
+        // Modrinth/CurseForge) solo se resuelve si hace falta de verdad: la instancia no está
+        // instalada todavía, o algo cambió desde la última vez (ver
+        // InstanceInstallStatus.isUpdateAvailable, que compara hashes sin tocar la red). En
+        // cualquier otro "Jugar" de una instancia ya al día este paso se salta entero -antes se
+        // llamaba en cada partida, y volvía a resolver cada mod contra Modrinth aunque nada
+        // hubiera cambiado, solo para acabar sin hacer ninguna descarga real-.
+        if (!InstanceInstallStatus.isInstalled(instance) || InstanceInstallStatus.isUpdateAvailable(instance)) {
+            contentInstaller.install(instance);
+        }
 
         attemptWriteSessionToken(username);
 
         String uuid = OfflineUUID.generate(username).toString();
 
-        return gameLauncher.launch(instancePaths, instance.mcVersion, vanillaJson, fabricJson, username, uuid);
+        Process process = gameLauncher.launch(instancePaths, instance.mcVersion, vanillaJson, fabricJson, username, uuid);
+        // Mismo motivo que el borrado de arriba: si esta partida tampoco llega a conectarse a un
+        // servidor con el mod, el token no debe sobrevivir en disco más allá de la propia partida.
+        process.onExit().thenRun(() -> GameSessionTokenFile.deleteIfExists(instancePaths));
+        return process;
     }
 
     /**

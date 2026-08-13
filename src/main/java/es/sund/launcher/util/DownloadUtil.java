@@ -26,7 +26,7 @@ public final class DownloadUtil {
 
     private static final HttpClient CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(AppConstants.CONNECT_TIMEOUT_SECONDS))
-            .followRedirects(HttpClient.Redirect.ALWAYS)
+            .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
 
     public interface ProgressListener {
@@ -148,7 +148,7 @@ public final class DownloadUtil {
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                Path outPath = resolveZipEntry(targetRoot, entry.getName());
+                Path outPath = resolveChild(targetRoot, entry.getName());
                 if (entry.isDirectory()) {
                     Files.createDirectories(outPath);
                     continue;
@@ -161,11 +161,18 @@ public final class DownloadUtil {
         }
     }
 
-    /** Resuelve una entrada de zip contra targetRoot, rechazando cualquiera que escape de él (Zip Slip). */
-    private static Path resolveZipEntry(Path targetRoot, String entryName) throws IOException {
-        Path resolved = targetRoot.resolve(entryName).normalize();
+    /**
+     * Resuelve `name` (entrada de zip, o "fileName"/"filename" que manda el backend o Modrinth
+     * para un mod/resourcepack suelto) contra targetRoot, rechazando cualquiera que escape de él
+     * (Zip Slip / path traversal). Un nombre como "../../../.credkey" resolvería fuera de
+     * targetRoot sin esta comprobación, sobrescribiendo o borrando ficheros arbitrarios del
+     * usuario (ver también removeUnmanagedMods en InstanceContentInstaller, que reutiliza esto
+     * antes de borrar).
+     */
+    public static Path resolveChild(Path targetRoot, String name) throws IOException {
+        Path resolved = targetRoot.resolve(name).normalize();
         if (!resolved.startsWith(targetRoot)) {
-            throw new IOException("Entrada de zip fuera del directorio de destino (posible Zip Slip): \"" + entryName + "\"");
+            throw new IOException("Ruta fuera del directorio de destino (posible path traversal): \"" + name + "\"");
         }
         return resolved;
     }

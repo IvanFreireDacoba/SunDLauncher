@@ -15,6 +15,13 @@ package es.sund.launcher.model;
  * resourcepacks a resolver contra la API de Modrinth en el momento de
  * instalar (ver ModpackDefinition/ResourcepackDefinition). Pueden ser null
  * si esa instancia no tiene mods/resourcepacks adicionales.
+ *
+ * modpackJsonSha1/resourcepackJsonSha1: hash del JSON tal cual (no de los
+ * mods que resuelve), igual que instancePackSha1 pero para estas dos listas.
+ * Permite a InstanceInstallStatus/InstanceContentInstaller saber si algo
+ * cambió sin tener que volver a resolver cada mod/resourcepack contra
+ * Modrinth: ese trabajo de red solo se repite al instalar/actualizar, nunca
+ * en cada "Jugar" de una instancia ya al día.
  */
 public class GameInstance {
     public int id;
@@ -24,5 +31,7 @@ public class GameInstance {
     public String instancePackUrl;
     public String instancePackSha1;
     public String modpackJsonUrl;
+    public String modpackJsonSha1;
     public String resourcepackJsonUrl;
+    public String resourcepackJsonSha1;
 }

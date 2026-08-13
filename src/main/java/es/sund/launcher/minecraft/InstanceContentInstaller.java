@@ -41,6 +41,8 @@ public class InstanceContentInstaller {
 
     private static final String INSTANCE_PACK_MARKER_FILE = ".instance_pack.sha1";
     private static final String MANAGED_MODS_MARKER_FILE = ".managed_mods.json";
+    private static final String MODPACK_JSON_MARKER_FILE = ".modpack_json.sha1";
+    private static final String RESOURCEPACK_JSON_MARKER_FILE = ".resourcepack_json.sha1";
 
     private final AppPaths.InstancePaths paths;
     private final ProgressListener listener;
@@ -59,7 +61,21 @@ public class InstanceContentInstaller {
      * instancePackSha1 recién obtenido de GameCatalog).
      */
     public static String readAppliedInstancePackSha1(AppPaths.InstancePaths paths) {
-        Path marker = new File(paths.root, INSTANCE_PACK_MARKER_FILE).toPath();
+        return readMarker(paths, INSTANCE_PACK_MARKER_FILE);
+    }
+
+    /** Mismo propósito que readAppliedInstancePackSha1 pero para modpack.json (lista de mods). */
+    public static String readAppliedModpackJsonSha1(AppPaths.InstancePaths paths) {
+        return readMarker(paths, MODPACK_JSON_MARKER_FILE);
+    }
+
+    /** Mismo propósito que readAppliedInstancePackSha1 pero para la lista de resourcepacks. */
+    public static String readAppliedResourcepackJsonSha1(AppPaths.InstancePaths paths) {
+        return readMarker(paths, RESOURCEPACK_JSON_MARKER_FILE);
+    }
+
+    private static String readMarker(AppPaths.InstancePaths paths, String markerFileName) {
+        Path marker = new File(paths.root, markerFileName).toPath();
         if (!Files.exists(marker)) {
             return null;
         }
@@ -151,12 +167,19 @@ public class InstanceContentInstaller {
         if (instance.modpackJsonUrl == null) {
             return;
         }
+        Path modpackMarker = new File(paths.root, MODPACK_JSON_MARKER_FILE).toPath();
+        if (instance.modpackJsonSha1 != null
+                && instance.modpackJsonSha1.equalsIgnoreCase(readMarker(paths, MODPACK_JSON_MARKER_FILE))) {
+            return; // la lista de mods no cambió desde la última instalación, nada que resolver
+        }
+
         String raw = DownloadUtil.getString(instance.modpackJsonUrl);
         ModpackDefinition modpack = gson.fromJson(raw, ModpackDefinition.class);
         if (modpack == null || modpack.mods == null) {
             return;
         }
 
+        Path modsRoot = paths.modsDir.toPath().normalize();
         List<String> managedFileNames = new ArrayList<>();
         for (ModpackDefinition.ModEntry mod : modpack.mods) {
             String fileName;
@@ -164,19 +187,23 @@ public class InstanceContentInstaller {
                 // Mods fuera de Modrinth (p.ej. FTB, vía CurseForge): el backend ya resolvió
                 // el enlace real de descarga al generar modpack.json, aquí solo se descarga.
                 fileName = mod.fileName != null ? mod.fileName : new File(mod.directUrl).getName();
-                Path dest = new File(paths.modsDir, fileName).toPath();
+                Path dest = DownloadUtil.resolveChild(modsRoot, fileName);
                 DownloadUtil.downloadFile(mod.directUrl, dest, mod.sha1, "Mod " + fileName, listener);
             } else {
                 ModrinthVersionResponse.ModrinthFile file = modrinthClient.resolvePrimaryFile(mod.modrinthVersionId);
                 fileName = mod.fileName != null ? mod.fileName : file.filename;
                 String sha1 = mod.sha1 != null ? mod.sha1 : (file.hashes != null ? file.hashes.sha1 : null);
-                Path dest = new File(paths.modsDir, fileName).toPath();
+                Path dest = DownloadUtil.resolveChild(modsRoot, fileName);
                 DownloadUtil.downloadFile(file.url, dest, sha1, "Mod " + fileName, listener);
             }
             managedFileNames.add(fileName);
         }
 
         removeUnmanagedMods(managedFileNames);
+
+        if (instance.modpackJsonSha1 != null) {
+            Files.writeString(modpackMarker, instance.modpackJsonSha1, StandardCharsets.UTF_8);
+        }
     }
 
     /**
@@ -193,9 +220,10 @@ public class InstanceContentInstaller {
             List<String> previousFileNames = gson.fromJson(
                     Files.readString(marker, StandardCharsets.UTF_8), listType);
             if (previousFileNames != null) {
+                Path modsRoot = paths.modsDir.toPath().normalize();
                 for (String fileName : previousFileNames) {
                     if (!currentFileNames.contains(fileName)) {
-                        Files.deleteIfExists(new File(paths.modsDir, fileName).toPath());
+                        Files.deleteIfExists(DownloadUtil.resolveChild(modsRoot, fileName));
                     }
                 }
             }
@@ -207,23 +235,34 @@ public class InstanceContentInstaller {
         if (instance.resourcepackJsonUrl == null) {
             return;
         }
+        Path resourcepackMarker = new File(paths.root, RESOURCEPACK_JSON_MARKER_FILE).toPath();
+        if (instance.resourcepackJsonSha1 != null
+                && instance.resourcepackJsonSha1.equalsIgnoreCase(readMarker(paths, RESOURCEPACK_JSON_MARKER_FILE))) {
+            return; // la lista de resourcepacks no cambió desde la última instalación, nada que resolver
+        }
+
         String raw = DownloadUtil.getString(instance.resourcepackJsonUrl);
         ResourcepackDefinition resourcepacks = gson.fromJson(raw, ResourcepackDefinition.class);
         if (resourcepacks == null || resourcepacks.resourcePacks == null) {
             return;
         }
 
+        Path resourcepacksRoot = paths.resourcepacksDir.toPath().normalize();
         List<String> orderedFileNames = new ArrayList<>();
         for (ResourcepackDefinition.ResourcepackEntry pack : resourcepacks.resourcePacks) {
             ModrinthVersionResponse.ModrinthFile file =
                     modrinthClient.resolveResourcepackFile(pack.source, pack.version, instance.mcVersion);
             String sha1 = file.hashes != null ? file.hashes.sha1 : null;
-            Path dest = new File(paths.resourcepacksDir, file.filename).toPath();
+            Path dest = DownloadUtil.resolveChild(resourcepacksRoot, file.filename);
             DownloadUtil.downloadFile(file.url, dest, sha1, "Resourcepack " + pack.name, listener);
             orderedFileNames.add(file.filename);
         }
 
         applyResourcepackOrder(orderedFileNames);
+
+        if (instance.resourcepackJsonSha1 != null) {
+            Files.writeString(resourcepackMarker, instance.resourcepackJsonSha1, StandardCharsets.UTF_8);
+        }
     }
 
     /**
