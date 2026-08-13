@@ -16,6 +16,10 @@ public interface AppConstants {
     String API_CHECK_ACCOUNT_ENDPOINT = API_BASE_URL + "/CheckServerAccount";
     String API_CHECK_LAUNCHER_VERSION_ENDPOINT = API_BASE_URL + "/LauncherVersion";
     String API_GAME_CATALOG_ENDPOINT = API_BASE_URL + "/GameCatalog";
+    // Token de sesión de juego de un solo uso (mod sundauth, ver
+    // datos extra/Documentacion/sundauth-mod/README.md): se pide justo antes
+    // de cada "Jugar", no solo al iniciar sesión en el launcher.
+    String API_GAME_SESSION_TOKEN_ENDPOINT = API_BASE_URL + "/GameSessionToken";
 
     // ---- APIs públicas de terceros (no requieren cuenta) ----
     String MOJANG_VERSION_MANIFEST_URL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";

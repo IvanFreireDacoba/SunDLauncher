@@ -1,8 +1,10 @@
 package es.sund.launcher.service;
 
+import es.sund.launcher.api.SunDApiService;
 import es.sund.launcher.config.LauncherSettings;
 import es.sund.launcher.exception.InstallationException;
 import es.sund.launcher.model.GameInstance;
+import es.sund.launcher.security.CredentialStore;
 import es.sund.launcher.ui.InstancePanel;
 import es.sund.launcher.ui.InstanceSelectionFrame;
 
@@ -29,9 +31,10 @@ import java.util.function.Consumer;
 public class GameLaunchCoordinator {
 
 	public void launch(String username, GameInstance instance, InstancePanel panel, InstanceSelectionFrame frame,
-			Consumer<String> onFailure) {
+			SunDApiService apiService, CredentialStore credentialStore, Consumer<String> onFailure) {
 		try {
-			GameSessionStarter sessionStarter = new GameSessionStarter(instance, panel::showProgress);
+			GameSessionStarter sessionStarter =
+					new GameSessionStarter(instance, panel::showProgress, apiService, credentialStore);
 			Process process = sessionStarter.start(username);
 			panel.showPlaying();
 

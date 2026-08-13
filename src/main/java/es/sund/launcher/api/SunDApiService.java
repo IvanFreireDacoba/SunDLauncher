@@ -4,6 +4,7 @@ import es.sund.launcher.exception.ApiConnectionException;
 import es.sund.launcher.exception.ApiTimeoutException;
 import es.sund.launcher.model.AccountCheckResponse;
 import es.sund.launcher.model.GameCatalogResponse;
+import es.sund.launcher.model.GameSessionTokenResponse;
 import es.sund.launcher.model.VersionCheckResponse;
 
 /**
@@ -40,5 +41,18 @@ public interface SunDApiService {
      * @throws ApiConnectionException si no se puede conectar (servidor caído, sin red, DNS, etc)
      */
     GameCatalogResponse fetchGameCatalog()
+            throws ApiTimeoutException, ApiConnectionException;
+
+    /**
+     * Pide un token de sesión de juego de un solo uso, volviendo a verificar
+     * usuario/contraseña (mismo verify_login() que checkAccount, cuenta como
+     * intento de login a efectos de rate-limiting). Se llama justo antes de
+     * cada "Jugar", no solo al iniciar sesión en el launcher — ver
+     * datos extra/Documentacion/sundauth-mod/README.md.
+     *
+     * @throws ApiTimeoutException    si el servidor no responde a tiempo
+     * @throws ApiConnectionException si no se puede conectar (servidor caído, sin red, DNS, etc)
+     */
+    GameSessionTokenResponse requestGameSessionToken(String username, char[] password)
             throws ApiTimeoutException, ApiConnectionException;
 }

@@ -1,6 +1,8 @@
 package es.sund.launcher.action;
 
+import es.sund.launcher.api.SunDApiService;
 import es.sund.launcher.model.GameInstance;
+import es.sund.launcher.security.CredentialStore;
 import es.sund.launcher.service.GameLaunchCoordinator;
 import es.sund.launcher.service.InstanceInstallStatus;
 import es.sund.launcher.ui.InstancePanel;
@@ -23,13 +25,18 @@ public class PlayOrInstallAction implements ActionListener {
     private final InstancePanel panel;
     private final GameInstance instance;
     private final String username;
+    private final SunDApiService apiService;
+    private final CredentialStore credentialStore;
     private final GameLaunchCoordinator gameLaunchCoordinator = new GameLaunchCoordinator();
 
-    public PlayOrInstallAction(InstanceSelectionFrame frame, InstancePanel panel, GameInstance instance, String username) {
+    public PlayOrInstallAction(InstanceSelectionFrame frame, InstancePanel panel, GameInstance instance,
+            String username, SunDApiService apiService, CredentialStore credentialStore) {
         this.frame = frame;
         this.panel = panel;
         this.instance = instance;
         this.username = username;
+        this.apiService = apiService;
+        this.credentialStore = credentialStore;
     }
 
     @Override
@@ -42,7 +49,7 @@ public class PlayOrInstallAction implements ActionListener {
     }
 
     private void performLaunch() {
-        gameLaunchCoordinator.launch(username, instance, panel, frame, failureMessage -> {
+        gameLaunchCoordinator.launch(username, instance, panel, frame, apiService, credentialStore, failureMessage -> {
             restoreIdleState();
             frame.setStatus(failureMessage);
         });

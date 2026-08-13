@@ -6,6 +6,7 @@ import es.sund.launcher.exception.ApiConnectionException;
 import es.sund.launcher.exception.ApiTimeoutException;
 import es.sund.launcher.model.AccountCheckResponse;
 import es.sund.launcher.model.GameCatalogResponse;
+import es.sund.launcher.model.GameSessionTokenResponse;
 import es.sund.launcher.model.VersionCheckResponse;
 
 import java.net.ConnectException;
@@ -84,6 +85,28 @@ public class HttpSunDApiService implements SunDApiService {
 		}
 
 		return gson.fromJson(response.body(), GameCatalogResponse.class);
+	}
+
+	@Override
+	public GameSessionTokenResponse requestGameSessionToken(String username, char[] password)
+			throws ApiTimeoutException, ApiConnectionException {
+
+		String jsonBody = gson.toJson(Map.of("username", username, "password", new String(password)));
+
+		HttpRequest request = HttpRequest.newBuilder(URI.create(AppConstants.API_GAME_SESSION_TOKEN_ENDPOINT))
+				.header("Content-Type", "application/json")
+				.timeout(Duration.ofSeconds(AppConstants.REQUEST_TIMEOUT_SECONDS))
+				.POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8)).build();
+
+		HttpResponse<String> response = send(request);
+
+		if (response.statusCode() != 200) {
+			GameSessionTokenResponse fallback = new GameSessionTokenResponse();
+			fallback.success = false;
+			fallback.message = "El servidor respondió con un error (HTTP " + response.statusCode() + ")";
+			return fallback;
+		}
+		return gson.fromJson(response.body(), GameSessionTokenResponse.class);
 	}
 
 	private HttpResponse<String> send(HttpRequest request) throws ApiTimeoutException, ApiConnectionException {

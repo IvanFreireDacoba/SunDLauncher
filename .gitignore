@@ -1,5 +1,8 @@
 target/
 datos extra/
+# Repo git propio (github.com/IvanFreireDacoba/SunDAuthSystem), no un
+# submódulo formal: se rastrea y se publica aparte, no aquí.
+sundauth-fabric/
 dependency-reduced-pom.xml
 .claude/
 *.class

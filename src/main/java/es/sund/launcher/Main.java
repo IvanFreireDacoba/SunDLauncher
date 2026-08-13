@@ -108,7 +108,8 @@ public class Main {
         for (GameInstance instance : instances) {
             InstancePanel panel = frame.getInstancePanel(instance.id);
             applyInstallState(panel, instance);
-            panel.getActionButton().addActionListener(new PlayOrInstallAction(frame, panel, instance, username));
+            panel.getActionButton().addActionListener(
+                    new PlayOrInstallAction(frame, panel, instance, username, apiService, credentialStore));
             panel.getUninstallButton().addActionListener(new UninstallAction(panel, instance));
         }
     }
