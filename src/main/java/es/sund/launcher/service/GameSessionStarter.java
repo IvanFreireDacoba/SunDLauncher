@@ -16,6 +16,10 @@ import es.sund.launcher.security.StoredCredentials;
 import es.sund.launcher.util.DownloadUtil.ProgressListener;
 import es.sund.launcher.util.OfflineUUID;
 
+import java.io.File;
+import java.util.Arrays;
+import java.util.Comparator;
+
 /**
  * Encapsula el flujo completo de "asegurar que el juego está instalado y lanzarlo"
  * para una instancia concreta (SunD Origins, CobbleSpain, ...), para que las clases
@@ -85,8 +89,33 @@ public class GameSessionStarter {
         Process process = gameLauncher.launch(instancePaths, instance.mcVersion, vanillaJson, fabricJson, username, uuid);
         // Mismo motivo que el borrado de arriba: si esta partida tampoco llega a conectarse a un
         // servidor con el mod, el token no debe sobrevivir en disco más allá de la propia partida.
-        process.onExit().thenRun(() -> GameSessionTokenFile.deleteIfExists(instancePaths));
+        process.onExit().thenRun(() -> {
+            GameSessionTokenFile.deleteIfExists(instancePaths);
+            pruneOldLogs();
+        });
         return process;
+    }
+
+    /**
+     * Minecraft rota logs/latest.log a un fichero nuevo (logs/AAAA-MM-DD-N.log.gz) en cada
+     * partida, sin borrar nunca los anteriores — con el tiempo, basura acumulada sin límite en
+     * cada instancia. Tras cada partida, conserva solo los MAX_LOG_FILES_KEPT más recientes
+     * (por fecha de modificación) y borra el resto. Best-effort a propósito: un fallo aquí
+     * (permisos, fichero bloqueado) no debe afectar a nada más del launcher.
+     */
+    private static final int MAX_LOG_FILES_KEPT = 2;
+
+    private void pruneOldLogs() {
+        File logsDir = new File(instancePaths.root, "logs");
+        File[] logFiles = logsDir.listFiles(f ->
+                f.isFile() && (f.getName().endsWith(".log") || f.getName().endsWith(".log.gz")));
+        if (logFiles == null || logFiles.length <= MAX_LOG_FILES_KEPT) {
+            return;
+        }
+        Arrays.sort(logFiles, Comparator.comparingLong(File::lastModified).reversed());
+        for (int i = MAX_LOG_FILES_KEPT; i < logFiles.length; i++) {
+            logFiles[i].delete();
+        }
     }
 
     /**

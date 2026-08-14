@@ -3,6 +3,14 @@
 # Java instalado. Doble click en el .exe -> instala la app (acceso directo
 # en el menu de inicio, entrada en "Agregar o quitar programas", etc.).
 #
+# --win-per-user-install (añadido 2026-08-14): instala bajo el perfil del
+# usuario actual en vez de a nivel de máquina (Program Files), así que NO
+# hace falta UAC/admin ni para la instalación inicial ni, sobre todo, para
+# que el propio launcher se autoactualice más adelante (ver
+# SelfUpdateService, que relanza este mismo instalador en /quiet — con
+# instalación a nivel de máquina eso habría disparado un permiso de
+# administrador cada vez).
+#
 # Requiere: JDK 21+ (con jpackage) y el WiX Toolset v3 (choco install
 # wixtoolset). Los runners windows-latest de GitHub Actions ya traen ambos.
 #
@@ -61,6 +69,7 @@ jpackage `
   --win-shortcut `
   --win-menu `
   --win-dir-chooser `
+  --win-per-user-install `
   --win-upgrade-uuid $UPGRADE_UUID `
   --runtime-image $RUNTIME_IMAGE `
   --dest target\dist

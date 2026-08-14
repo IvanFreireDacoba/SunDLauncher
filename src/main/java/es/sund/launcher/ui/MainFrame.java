@@ -57,6 +57,8 @@ public class MainFrame extends JFrame {
     private final JButton loginButton = new JButton("Entrar");
     private final JButton exitButton = new JButton("Salir");
     private final JButton updateButton = new JButton("Actualizar lanzador");
+    /** Sustituye a usuario/contraseña/Entrar/Actualizar mientras SelfUpdateService descarga y aplica la nueva versión. */
+    private final JProgressBar selfUpdateProgressBar = new JProgressBar(0, 100);
 
     /** Tamaño mínimo para que el formulario no llegue a deformarse; sin máximo, la ventana admite pantalla completa. */
     private static final int MIN_WIDTH = 640;
@@ -76,6 +78,12 @@ public class MainFrame extends JFrame {
         buildComponents();
         setContentPane(backgroundPanel);
         layoutComponents(windowSize.width, windowSize.height);
+
+        // Pulsar Enter en cualquier campo del formulario equivale a pulsar "Entrar": el
+        // propio estado enabled del botón (updateLoginButtonState) ya exige usuario +
+        // contraseña + que no haga falta actualizar, así que basta con delegar en él como
+        // botón por defecto del root pane, sin duplicar esa condición aquí.
+        getRootPane().setDefaultButton(loginButton);
 
         // El formulario usa posicionamiento absoluto (setBounds), no un
         // LayoutManager, así que al redimensionar/maximizar la ventana hay que
@@ -150,6 +158,11 @@ public class MainFrame extends JFrame {
 
         styleButton(loginButton);
         backgroundPanel.add(loginButton);
+
+        selfUpdateProgressBar.setStringPainted(false);
+        selfUpdateProgressBar.setForeground(Theme.GOLD_ACCENT);
+        selfUpdateProgressBar.setVisible(false);
+        backgroundPanel.add(selfUpdateProgressBar);
     }
 
     /**
@@ -185,6 +198,7 @@ public class MainFrame extends JFrame {
         statusLabel.setBounds(formX, fieldY + 122, formWidth, 20);
         accountHintLabel.setBounds(formX, fieldY + 142, formWidth, 18);
         updateButton.setBounds(formX, buttonY, formWidth, buttonHeight);
+        selfUpdateProgressBar.setBounds(formX, buttonY, formWidth, buttonHeight);
 
         int halfWidth = (formWidth - 10) / 2;
         exitButton.setBounds(formX, lowerButtonY, halfWidth, buttonHeight);
@@ -302,6 +316,48 @@ public class MainFrame extends JFrame {
     public void setUpdateButtonEnabled(boolean enabled) {
         SwingUtilities.invokeLater(() -> {
             updateButton.setEnabled(enabled);
+            updateLoginButtonState();
+        });
+    }
+
+    /**
+     * Sustituye usuario/contraseña/Entrar/Actualizar por una barra de progreso, mientras
+     * SelfUpdateService descarga la nueva versión y la aplica. "Salir" se queda visible y
+     * activo a propósito (igual que el resto de la ventana, nunca se desactiva). Misma
+     * forma que {@link es.sund.launcher.util.DownloadUtil.ProgressListener} para poder
+     * pasarse directamente como listener.
+     */
+    public void showSelfUpdateProgress(String taskName, long bytesDone, long bytesTotal) {
+        SwingUtilities.invokeLater(() -> {
+            usernameLabel.setVisible(false);
+            usernameField.setVisible(false);
+            passwordLabel.setVisible(false);
+            passwordField.setVisible(false);
+            loginButton.setVisible(false);
+            updateButton.setVisible(false);
+            setAccountHintVisible(false);
+
+            statusLabel.setText(taskName != null ? taskName : "Actualizando...");
+            selfUpdateProgressBar.setVisible(true);
+            if (bytesTotal > 0) {
+                selfUpdateProgressBar.setIndeterminate(false);
+                selfUpdateProgressBar.setValue((int) ((bytesDone * 100) / bytesTotal));
+            } else {
+                selfUpdateProgressBar.setIndeterminate(true);
+            }
+        });
+    }
+
+    /** Vuelve al formulario normal tras un fallo de autoactualización (si tiene éxito, el proceso se relanza y esta ventana ni llega a verse de nuevo). */
+    public void hideSelfUpdateProgress() {
+        SwingUtilities.invokeLater(() -> {
+            selfUpdateProgressBar.setVisible(false);
+            usernameLabel.setVisible(true);
+            usernameField.setVisible(true);
+            passwordLabel.setVisible(true);
+            passwordField.setVisible(true);
+            loginButton.setVisible(true);
+            updateButton.setVisible(true);
             updateLoginButtonState();
         });
     }

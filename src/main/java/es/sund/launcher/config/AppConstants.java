@@ -9,7 +9,7 @@ public interface AppConstants {
 
     // ---- Identidad de la aplicación ----
     String LAUNCHER_NAME = "SunDLauncher";
-    String CURRENT_LAUNCHER_VERSION = "1.1";
+    String CURRENT_LAUNCHER_VERSION = "1.2";
 
     // ---- Tu API (SunD.es) ----
     String API_BASE_URL = "https://sund.es/APIs";
@@ -20,6 +20,16 @@ public interface AppConstants {
     // datos extra/Documentacion/sundauth-mod/README.md): se pide justo antes
     // de cada "Jugar", no solo al iniciar sesión en el launcher.
     String API_GAME_SESSION_TOKEN_ENDPOINT = API_BASE_URL + "/GameSessionToken";
+
+    // ---- Autoactualización del propio launcher (ver SelfUpdateService) ----
+    // Mismos nombres fijos que ya usa SunD/views/downloads/index.php: GitHub resuelve
+    // "latest" contra la release marcada como tal en cada momento, así que publicar una
+    // versión nueva nunca requiere cambiar esta URL.
+    String GITHUB_RELEASE_LATEST_BASE_URL =
+            "https://github.com/IvanFreireDacoba/SunDLauncher/releases/latest/download";
+    String SELF_UPDATE_ASSET_WINDOWS = "SunDLauncher-windows-x64.zip";
+    String SELF_UPDATE_ASSET_LINUX = "SunDLauncher-linux-x64.zip";
+    String SELF_UPDATE_ASSET_MACOS = "SunDLauncher-macos.zip";
 
     // ---- APIs públicas de terceros (no requieren cuenta) ----
     String MOJANG_VERSION_MANIFEST_URL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";

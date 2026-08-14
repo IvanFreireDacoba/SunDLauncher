@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
-# Empaqueta SunDLauncher como un instalador .pkg nativo de macOS, con un
-# runtime de Java 21 completo embebido: el usuario final no necesita tener
-# Java instalado. Doble click en el .pkg -> instala la app en /Applications.
+# Empaqueta SunDLauncher como una app-image de macOS (SunDLauncher.app), con
+# un runtime de Java 21 completo embebido: el usuario final no necesita
+# tener Java instalado. El jugador descomprime el .zip y arrastra
+# SunDLauncher.app a su carpeta ~/Aplicaciones (o /Applications): sin
+# instalador, sin admin.
 #
-# Requiere un JDK 21+ (con jpackage) en macOS. Las herramientas de firma de
-# Xcode (pkgbuild/productbuild) ya vienen con macos-latest en GitHub Actions.
+# Cambiado de --type pkg a --type app-image el 2026-08-14: un .pkg instala
+# en /Applications y requiere contraseña de administrador (dominio de
+# sistema), lo que habría hecho imposible que el propio launcher se
+# autoactualizara sin interrumpir con ese permiso cada vez. Una app-image en
+# la carpeta del propio usuario se puede sustituir en sitio sin admin, igual
+# que el AppImage de Linux (ver SelfUpdateService).
 #
-# Nota: el .pkg no está firmado con un certificado de Apple Developer, así
-# que Gatekeeper lo bloqueará como "de un desarrollador no identificado". El
+# Requiere un JDK 21+ (con jpackage) en macOS.
+#
+# Nota: la app no está firmada con un certificado de Apple Developer, así
+# que Gatekeeper la bloqueará como "de un desarrollador no identificado". El
 # jugador tiene que hacer clic derecho -> Abrir la primera vez (o aprobarlo
 # en Ajustes del Sistema > Privacidad y seguridad).
 #
@@ -32,7 +40,7 @@ echo "    versión: $VERSION"
 echo "==> mvn clean package"
 mvn -q clean package
 
-echo "==> jpackage (instalador .pkg, runtime completo embebido)"
+echo "==> jpackage (app-image, runtime completo embebido)"
 rm -rf target/dist target/jpackage-input
 mkdir -p target/jpackage-input
 cp target/SunDLauncher.jar target/jpackage-input/
@@ -44,7 +52,7 @@ cp target/SunDLauncher.jar target/jpackage-input/
 # no soporta -f.
 JAVA_HOME="$(cd "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 21}" && pwd -P)"
 jpackage \
-  --type pkg \
+  --type app-image \
   --name SunDLauncher \
   --input target/jpackage-input \
   --main-jar SunDLauncher.jar \
@@ -56,12 +64,12 @@ jpackage \
   --runtime-image "${JAVA_HOME:?Define JAVA_HOME apuntando a tu JDK 21}" \
   --dest target/dist
 
-echo "==> comprimiendo en zip para repartir"
+echo "==> comprimiendo en zip para repartir (SunDLauncher.app entera, no solo un fichero)"
 ZIP_NAME="SunDLauncher-${VERSION}-macos.zip"
-(cd target/dist && zip -q -j "$ZIP_NAME" "SunDLauncher-${VERSION}.pkg")
+(cd target/dist && zip -qr "$ZIP_NAME" "SunDLauncher.app")
 
 echo
 echo "Listo: target/dist/$ZIP_NAME"
-echo "  El jugador lo descomprime y hace doble click en el .pkg: instala la"
-echo "  app en /Applications (sin JDK). Al no estar firmado, la primera vez"
-echo "  tendrá que hacer clic derecho -> Abrir."
+echo "  El jugador lo descomprime y arrastra SunDLauncher.app a su carpeta"
+echo "  Aplicaciones (sin JDK, sin instalador, sin admin). Al no estar"
+echo "  firmada, la primera vez tendrá que hacer clic derecho -> Abrir."
