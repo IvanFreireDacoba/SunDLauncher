@@ -11,7 +11,7 @@ import es.sund.launcher.ui.InstancePanel;
 public final class InstanceInstallStatus {
 
     public static boolean isInstalled(GameInstance instance) {
-        AppPaths.InstancePaths paths = AppPaths.forInstance(instance.id);
+        AppPaths.InstancePaths paths = AppPaths.forInstance(instance);
         return MinecraftInstaller.isInstalled(paths, instance.mcVersion)
                 && FabricInstaller.isInstalled(paths, instance.mcVersion, instance.fabricLoaderVersion);
     }
@@ -32,7 +32,7 @@ public final class InstanceInstallStatus {
      * tocar la red (ver GameSessionStarter.start()).
      */
     public static boolean isUpdateAvailable(GameInstance instance) {
-        AppPaths.InstancePaths paths = AppPaths.forInstance(instance.id);
+        AppPaths.InstancePaths paths = AppPaths.forInstance(instance);
         return isStale(instance.instancePackUrl, instance.instancePackSha1,
                     InstanceContentInstaller.readAppliedInstancePackSha1(paths))
                 || isStale(instance.modpackJsonUrl, instance.modpackJsonSha1,

@@ -48,7 +48,7 @@ public class UninstallAction implements ActionListener {
 
     private void performUninstall() {
         try {
-            DownloadUtil.deleteRecursive(AppPaths.forInstance(instance.id).root.toPath());
+            DownloadUtil.deleteRecursive(AppPaths.forInstance(instance).root.toPath());
         } catch (IOException ignored) {
             // DownloadUtil.deleteRecursive ya ignora fallos por-fichero (p.ej. un
             // .jar bloqueado por el antivirus); esto es solo una red de seguridad

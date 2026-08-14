@@ -26,6 +26,10 @@ package es.sund.launcher.model;
 public class GameInstance {
     public int id;
     public String name;
+    // Carpeta local de la instancia (ver AppPaths.forInstance()): "<folder>_instance",
+    // p.ej. "SunDOrigins_instance". Reemplaza al antiguo nombrado por id numérico
+    // ("2"/"3"), ilegible para el jugador si mira la carpeta de datos del launcher.
+    public String folder;
     public String mcVersion;
     public String fabricLoaderVersion;
     public String instancePackUrl;

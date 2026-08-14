@@ -40,7 +40,7 @@ public class GameSessionStarter {
     public GameSessionStarter(GameInstance instance, ProgressListener progressListener,
             SunDApiService apiService, CredentialStore credentialStore) {
         this.instance = instance;
-        this.instancePaths = AppPaths.forInstance(instance.id);
+        this.instancePaths = AppPaths.forInstance(instance);
         this.minecraftInstaller = new MinecraftInstaller(instancePaths, progressListener);
         this.fabricInstaller = new FabricInstaller(instancePaths, progressListener);
         this.contentInstaller = new InstanceContentInstaller(instancePaths, progressListener);

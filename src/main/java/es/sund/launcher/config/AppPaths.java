@@ -1,5 +1,7 @@
 package es.sund.launcher.config;
 
+import es.sund.launcher.model.GameInstance;
+
 import java.io.File;
 
 /**
@@ -11,7 +13,7 @@ import java.io.File;
  * configuración propio que gestiona LauncherUpdateService, independiente del
  * juego). Las carpetas de una instalación de Minecraft en sí (versions,
  * libraries, assets, natives, config, resourcepacks del propio juego) están
- * separadas por instancia bajo INSTANCES_DIR: ver {@link #forInstance(int)}.
+ * separadas por instancia bajo INSTANCES_DIR: ver {@link #forInstance(GameInstance)}.
  */
 public final class AppPaths {
 
@@ -43,7 +45,7 @@ public final class AppPaths {
             this.resourcepacksDir = new File(root, "resourcepacks");
             this.modsDir = new File(root, "mods");
             // Ojo: NO crear las carpetas aquí. Este constructor se ejecuta en cada
-            // AppPaths.forInstance(id) -incluida cada comprobación de estado, p.ej.
+            // AppPaths.forInstance(instance) -incluida cada comprobación de estado, p.ej.
             // InstanceInstallStatus.isInstalled()-, así que si recreara el árbol de
             // carpetas aquí, el refresco de estado que sigue a UninstallAction
             // volvería a levantar el esqueleto vacío justo después de borrarlo.
@@ -56,10 +58,32 @@ public final class AppPaths {
     /**
      * Rutas aisladas para la instancia dada (no crea ninguna carpeta: solo calcula las
      * rutas, cada escritura real crea lo que necesite en el momento). Independiente entre
-     * instancias.
+     * instancias. Carpeta "<folder>_instance" (p.ej. "SunDOrigins_instance") en vez del
+     * antiguo id numérico ("2"/"3") — mucho más legible si el jugador entra a la carpeta
+     * de datos del launcher a mano (ver el botón "Ficheros locales" del perfil).
      */
-    public static InstancePaths forInstance(int instanceId) {
-        return new InstancePaths(new File(INSTANCES_DIR, String.valueOf(instanceId)));
+    public static InstancePaths forInstance(GameInstance instance) {
+        File folder = new File(INSTANCES_DIR, instance.folder + "_instance");
+        if (!folder.exists()) {
+            migrateLegacyFolder(instance.id, folder);
+        }
+        return new InstancePaths(folder);
+    }
+
+    /**
+     * Compatibilidad con instalaciones ya existentes de antes del 2026-08-14, cuando las
+     * carpetas de instancia se nombraban por id numérico en vez de "<folder>_instance". Si
+     * la carpeta nueva no existe pero la vieja sí, se renombra en vez de tratarla como una
+     * instalación nueva -evita duplicar la descarga completa y dejar la carpeta vieja
+     * huérfana ocupando espacio en disco a cualquiera que ya tuviera la instancia
+     * instalada-. Best-effort: si el rename falla por lo que sea, forInstance() sigue
+     * devolviendo la ruta nueva y el instalador la trata como instancia nueva, sin más.
+     */
+    private static void migrateLegacyFolder(int legacyId, File newFolder) {
+        File legacyFolder = new File(INSTANCES_DIR, String.valueOf(legacyId));
+        if (legacyFolder.isDirectory()) {
+            legacyFolder.renameTo(newFolder);
+        }
     }
 
     private static File resolveRootDir() {
