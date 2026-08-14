@@ -42,13 +42,22 @@ public final class AppPaths {
             this.configDir = new File(root, "config");
             this.resourcepacksDir = new File(root, "resourcepacks");
             this.modsDir = new File(root, "mods");
-            for (File dir : new File[] { root, versionsDir, librariesDir, assetsDir, nativesDir, configDir, resourcepacksDir, modsDir }) {
-                dir.mkdirs();
-            }
+            // Ojo: NO crear las carpetas aquí. Este constructor se ejecuta en cada
+            // AppPaths.forInstance(id) -incluida cada comprobación de estado, p.ej.
+            // InstanceInstallStatus.isInstalled()-, así que si recreara el árbol de
+            // carpetas aquí, el refresco de estado que sigue a UninstallAction
+            // volvería a levantar el esqueleto vacío justo después de borrarlo.
+            // Cada instalador (MinecraftInstaller/FabricInstaller/
+            // InstanceContentInstaller/DownloadUtil.downloadFile) ya crea sus
+            // propias carpetas justo antes de escribir en ellas.
         }
     }
 
-    /** Rutas aisladas para la instancia dada, creando las carpetas si no existen. Independiente entre instancias. */
+    /**
+     * Rutas aisladas para la instancia dada (no crea ninguna carpeta: solo calcula las
+     * rutas, cada escritura real crea lo que necesite en el momento). Independiente entre
+     * instancias.
+     */
     public static InstancePaths forInstance(int instanceId) {
         return new InstancePaths(new File(INSTANCES_DIR, String.valueOf(instanceId)));
     }
