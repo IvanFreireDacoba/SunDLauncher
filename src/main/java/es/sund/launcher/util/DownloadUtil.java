@@ -76,7 +76,17 @@ public final class DownloadUtil {
 
     public static void downloadFile(String url, Path destination, String expectedSha1,
                                      String taskName, ProgressListener listener) throws IOException, InterruptedException {
-        if (Files.exists(destination) && expectedSha1 != null && sha1Matches(destination, expectedSha1)) {
+        downloadFile(url, destination, "SHA-1", expectedSha1, taskName, listener);
+    }
+
+    /**
+     * Igual que {@link #downloadFile(String, Path, String, String, ProgressListener)} pero con
+     * el algoritmo de hash explícito, para verificar contra fuentes que no dan SHA-1 (p.ej. el
+     * "digest" sha256 que expone la API de releases de GitHub, ver SelfUpdateService).
+     */
+    public static void downloadFile(String url, Path destination, String hashAlgorithm, String expectedHashHex,
+                                     String taskName, ProgressListener listener) throws IOException, InterruptedException {
+        if (Files.exists(destination) && expectedHashHex != null && hashMatches(destination, hashAlgorithm, expectedHashHex)) {
             return;
         }
 
@@ -103,17 +113,17 @@ public final class DownloadUtil {
             }
         }
 
-        if (expectedSha1 != null && !sha1Matches(tmp, expectedSha1)) {
+        if (expectedHashHex != null && !hashMatches(tmp, hashAlgorithm, expectedHashHex)) {
             Files.deleteIfExists(tmp);
-            throw new IOException("SHA1 no coincide para " + destination.getFileName());
+            throw new IOException(hashAlgorithm + " no coincide para " + destination.getFileName());
         }
 
         Files.move(tmp, destination, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private static boolean sha1Matches(Path file, String expectedSha1) throws IOException {
+    private static boolean hashMatches(Path file, String algorithm, String expectedHashHex) throws IOException {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            MessageDigest digest = MessageDigest.getInstance(algorithm);
             try (InputStream in = Files.newInputStream(file)) {
                 byte[] buffer = new byte[8192];
                 int read;
@@ -123,7 +133,7 @@ public final class DownloadUtil {
             }
             StringBuilder sb = new StringBuilder();
             for (byte b : digest.digest()) sb.append(String.format("%02x", b));
-            return sb.toString().equalsIgnoreCase(expectedSha1);
+            return sb.toString().equalsIgnoreCase(expectedHashHex);
         } catch (Exception e) {
             return false;
         }

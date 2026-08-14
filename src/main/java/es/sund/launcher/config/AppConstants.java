@@ -30,6 +30,14 @@ public interface AppConstants {
     String SELF_UPDATE_ASSET_WINDOWS = "SunDLauncher-windows-x64.zip";
     String SELF_UPDATE_ASSET_LINUX = "SunDLauncher-linux-x64.zip";
     String SELF_UPDATE_ASSET_MACOS = "SunDLauncher-macos.zip";
+    // SEGURIDAD (auditoría 2026-08-14): la API de releases de GitHub calcula y expone un
+    // "digest" (sha256) por cada asset subido, público, sin autenticación. SelfUpdateService
+    // lo consulta antes de descargar para verificar integridad -antes se descargaba con
+    // expectedSha1 = null, sin ninguna comprobación más allá de HTTPS-. Mismo endpoint
+    // "latest" que ya resuelve el nombre fijo de descarga, misma semántica de "lo que esté
+    // marcado Latest ahora mismo".
+    String GITHUB_API_LATEST_RELEASE_URL =
+            "https://api.github.com/repos/IvanFreireDacoba/SunDLauncher/releases/latest";
 
     // ---- APIs públicas de terceros (no requieren cuenta) ----
     String MOJANG_VERSION_MANIFEST_URL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";

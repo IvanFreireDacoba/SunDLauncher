@@ -1,5 +1,9 @@
 package es.sund.launcher.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import es.sund.launcher.config.AppConstants;
 import es.sund.launcher.exception.LauncherUpdateException;
 import es.sund.launcher.util.DownloadUtil;
@@ -31,6 +35,14 @@ import java.util.stream.Stream;
  * Si el proceso actual no parece una instalación empaquetada real (p.ej. se ejecuta desde un
  * IDE o `java -jar` suelto, caso de desarrollo), no se hace nada destructivo: se devuelve
  * NOT_APPLICABLE para que el llamador caiga al enlace de descarga manual de siempre.
+ *
+ * SEGURIDAD (auditoría 2026-08-14, corregido el mismo día): antes se descargaba el zip sin
+ * ninguna verificación de integridad más allá de HTTPS. Ahora, antes de cada descarga, se
+ * consulta el "digest" (sha256) que la propia API de releases de GitHub calcula y publica
+ * por cada asset (público, sin autenticación, mismo endpoint "latest" que ya resuelve el
+ * nombre fijo de descarga) y se verifica contra él — igual de estricto que
+ * LauncherUpdateService.applyUpdate() con configPackSha1: si no se puede obtener el hash
+ * esperado, se aborta con LauncherUpdateException en vez de aplicar un binario sin verificar.
  */
 public class SelfUpdateService {
 
@@ -66,9 +78,10 @@ public class SelfUpdateService {
 
         Path workDir = Files.createTempDirectory("sundlauncher-selfupdate");
         Path zipPath = workDir.resolve("update.zip");
+        String expectedSha256 = fetchExpectedSha256(AppConstants.SELF_UPDATE_ASSET_LINUX);
         DownloadUtil.downloadFile(
                 AppConstants.GITHUB_RELEASE_LATEST_BASE_URL + "/" + AppConstants.SELF_UPDATE_ASSET_LINUX,
-                zipPath, null, "Descargando SunD Launcher...", progress);
+                zipPath, "SHA-256", expectedSha256, "Descargando SunD Launcher...", progress);
 
         Path extractDir = workDir.resolve("extracted");
         Files.createDirectories(extractDir);
@@ -104,9 +117,10 @@ public class SelfUpdateService {
 
         Path workDir = Files.createTempDirectory("sundlauncher-selfupdate");
         Path zipPath = workDir.resolve("update.zip");
+        String expectedSha256 = fetchExpectedSha256(AppConstants.SELF_UPDATE_ASSET_WINDOWS);
         DownloadUtil.downloadFile(
                 AppConstants.GITHUB_RELEASE_LATEST_BASE_URL + "/" + AppConstants.SELF_UPDATE_ASSET_WINDOWS,
-                zipPath, null, "Descargando SunD Launcher...", progress);
+                zipPath, "SHA-256", expectedSha256, "Descargando SunD Launcher...", progress);
 
         Path extractDir = workDir.resolve("extracted");
         Files.createDirectories(extractDir);
@@ -159,9 +173,10 @@ public class SelfUpdateService {
 
         Path workDir = Files.createTempDirectory("sundlauncher-selfupdate");
         Path zipPath = workDir.resolve("update.zip");
+        String expectedSha256 = fetchExpectedSha256(AppConstants.SELF_UPDATE_ASSET_MACOS);
         DownloadUtil.downloadFile(
                 AppConstants.GITHUB_RELEASE_LATEST_BASE_URL + "/" + AppConstants.SELF_UPDATE_ASSET_MACOS,
-                zipPath, null, "Descargando SunD Launcher...", progress);
+                zipPath, "SHA-256", expectedSha256, "Descargando SunD Launcher...", progress);
 
         Path extractDir = workDir.resolve("extracted");
         Files.createDirectories(extractDir);
@@ -200,6 +215,40 @@ public class SelfUpdateService {
                 .start();
 
         return Result.APPLIED_WILL_RESTART;
+    }
+
+    /**
+     * Consulta la release "Latest" real vía la API de GitHub (pública, sin autenticación) y
+     * devuelve el "digest" sha256 que GitHub ya calculó para el asset dado al subirlo. Lanza
+     * LauncherUpdateException si la API falla, si no aparece el asset, o si no trae digest
+     * (nunca debería pasar hoy, pero mejor abortar la autoactualización que aplicar un binario
+     * sin verificar) — mismo criterio "fail-closed" que LauncherUpdateService.applyUpdate().
+     */
+    private static String fetchExpectedSha256(String assetFileName) throws IOException, InterruptedException, LauncherUpdateException {
+        String json = DownloadUtil.getString(AppConstants.GITHUB_API_LATEST_RELEASE_URL);
+        JsonObject release;
+        JsonArray assets;
+        try {
+            release = JsonParser.parseString(json).getAsJsonObject();
+            assets = release.getAsJsonArray("assets");
+        } catch (RuntimeException e) {
+            throw new LauncherUpdateException("Respuesta inesperada de la API de GitHub al consultar la última versión.", e);
+        }
+        if (assets != null) {
+            for (JsonElement element : assets) {
+                JsonObject asset = element.getAsJsonObject();
+                if (!assetFileName.equals(asset.get("name").getAsString())) {
+                    continue;
+                }
+                JsonElement digestEl = asset.get("digest");
+                String digest = (digestEl != null && !digestEl.isJsonNull()) ? digestEl.getAsString() : null;
+                if (digest != null && digest.startsWith("sha256:")) {
+                    return digest.substring("sha256:".length());
+                }
+                throw new LauncherUpdateException("GitHub no ha publicado un hash sha256 para " + assetFileName + ".");
+            }
+        }
+        throw new LauncherUpdateException("No se encontró " + assetFileName + " en la última release de GitHub.");
     }
 
     /** Busca el primer hijo directo de dir cuyo nombre termine en extension (sin distinguir mayúsculas). */
