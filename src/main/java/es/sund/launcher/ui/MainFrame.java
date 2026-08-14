@@ -203,10 +203,18 @@ public class MainFrame extends JFrame {
                 BorderFactory.createEmptyBorder(6, 10, 6, 10)));
     }
 
+    /**
+     * "Entrar" solo se habilita si hay usuario Y contraseña Y no hace falta actualizar el
+     * launcher primero (updateButton.isEnabled() == hay actualización pendiente, ver
+     * StartupController/setUpdateButtonEnabled). Mientras el launcher esté desactualizado,
+     * el jugador debe quedarse en esta pantalla con el botón "Actualizar lanzador" activo,
+     * nunca poder entrar directamente.
+     */
     private void updateLoginButtonState() {
         boolean hasUsername = !usernameField.getText().trim().isEmpty();
         boolean hasPassword = passwordField.getPassword().length > 0;
-        loginButton.setEnabled(hasUsername && hasPassword);
+        boolean updateRequired = updateButton.isEnabled();
+        loginButton.setEnabled(hasUsername && hasPassword && !updateRequired);
     }
 
     // ---- Getters expuestos para que Action/Controller se enganchen desde fuera ----
@@ -273,11 +281,15 @@ public class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * "Salir" queda fuera a propósito: debe estar siempre disponible, incluso mientras hay
+     * una comprobación de cuenta en curso (login manual o auto-login) — el jugador nunca
+     * debe quedarse sin forma de cerrar el launcher.
+     */
     public void setFormEnabled(boolean enabled) {
         SwingUtilities.invokeLater(() -> {
             usernameField.setEnabled(enabled);
             passwordField.setEnabled(enabled);
-            exitButton.setEnabled(enabled);
             if (enabled) {
                 updateLoginButtonState();
             } else {
@@ -286,8 +298,12 @@ public class MainFrame extends JFrame {
         });
     }
 
+    /** También reevalúa "Entrar": si ya había usuario/contraseña rellenos, un cambio aquí puede habilitarlo o deshabilitarlo. */
     public void setUpdateButtonEnabled(boolean enabled) {
-        SwingUtilities.invokeLater(() -> updateButton.setEnabled(enabled));
+        SwingUtilities.invokeLater(() -> {
+            updateButton.setEnabled(enabled);
+            updateLoginButtonState();
+        });
     }
 
     public void prefillCredentials(String username, char[] password) {
