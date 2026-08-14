@@ -61,13 +61,29 @@ public final class AppPaths {
      * instancias. Carpeta "<folder>_instance" (p.ej. "SunDOrigins_instance") en vez del
      * antiguo id numérico ("2"/"3") — mucho más legible si el jugador entra a la carpeta
      * de datos del launcher a mano (ver el botón "Ficheros locales" del perfil).
+     *
+     * SEGURIDAD (auditoría 2026-08-14): instance.folder viene tal cual del JSON de
+     * /APIs/GameCatalog. Sin validar, un backend comprometido con un folder tipo
+     * "../../../algo" habría hecho que TODO lo que escribe dentro de InstancePaths
+     * (instaladores, GameLauncher) y sobre todo UninstallAction.deleteRecursive()
+     * -un borrado recursivo real- operase fuera de INSTANCES_DIR. requireSafeFolderName()
+     * exige un identificador simple (letras/dígitos/guion/guion bajo), igual de estricto
+     * que DownloadUtil.resolveChild() pero para un único segmento en vez de una ruta.
      */
     public static InstancePaths forInstance(GameInstance instance) {
-        File folder = new File(INSTANCES_DIR, instance.folder + "_instance");
+        File folder = new File(INSTANCES_DIR, requireSafeFolderName(instance.folder) + "_instance");
         if (!folder.exists()) {
             migrateLegacyFolder(instance.id, folder);
         }
         return new InstancePaths(folder);
+    }
+
+    private static String requireSafeFolderName(String folder) {
+        if (folder == null || !folder.matches("[A-Za-z0-9_-]+")) {
+            throw new IllegalStateException(
+                    "Nombre de carpeta de instancia inválido recibido del backend: \"" + folder + "\"");
+        }
+        return folder;
     }
 
     /**
