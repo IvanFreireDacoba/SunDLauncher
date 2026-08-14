@@ -26,6 +26,7 @@ public class ProfileScreen extends JPanel {
     private final JButton settingsToggle = new JButton();
     private final JComboBox<Theme.LauncherPalette> themeSelector = new JComboBox<>(Theme.LauncherPalette.values());
     private final JButton logoutButton = new JButton("Cerrar sesión");
+    private final JButton openLocalFilesButton = new JButton("Ficheros locales");
     private boolean settingsExpanded = true;
 
     public ProfileScreen() {
@@ -101,6 +102,9 @@ public class ProfileScreen extends JPanel {
         settingsBody.add(Box.createVerticalStrut(18));
         settingsBody.add(buildThemeSection());
 
+        settingsBody.add(Box.createVerticalStrut(18));
+        settingsBody.add(buildLocalFilesSection());
+
         settingsBody.add(Box.createVerticalStrut(24));
         settingsBody.add(buildLogoutSection());
 
@@ -146,6 +150,28 @@ public class ProfileScreen extends JPanel {
         return wrapper;
     }
 
+    /** Botón que abre en el explorador de archivos del sistema la carpeta de datos del launcher (instancias, credenciales, config); su lógica vive fuera, en OpenLocalFilesAction. */
+    private JComponent buildLocalFilesSection() {
+        JPanel wrapper = new JPanel();
+        wrapper.setOpaque(false);
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.X_AXIS));
+        wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        openLocalFilesButton.setFocusPainted(false);
+        openLocalFilesButton.setFont(openLocalFilesButton.getFont().deriveFont(Font.PLAIN, 12f));
+        openLocalFilesButton.setForeground(Theme.GOLD_TEXT_MUTED);
+        openLocalFilesButton.setContentAreaFilled(false);
+        openLocalFilesButton.setOpaque(false);
+        openLocalFilesButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        openLocalFilesButton.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.STONE_BUTTON_BORDER, 1),
+                BorderFactory.createEmptyBorder(8, 16, 8, 16)));
+        openLocalFilesButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        wrapper.add(openLocalFilesButton);
+        return wrapper;
+    }
+
     /** Botón de cerrar sesión: su lógica (borrar credenciales, volver al login) vive fuera, en LogoutAction. */
     private JComponent buildLogoutSection() {
         JPanel wrapper = new JPanel();
@@ -186,5 +212,9 @@ public class ProfileScreen extends JPanel {
 
     public JButton getLogoutButton() {
         return logoutButton;
+    }
+
+    public JButton getOpenLocalFilesButton() {
+        return openLocalFilesButton;
     }
 }

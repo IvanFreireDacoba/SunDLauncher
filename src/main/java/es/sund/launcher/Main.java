@@ -3,6 +3,7 @@ package es.sund.launcher;
 import es.sund.launcher.action.ExitAction;
 import es.sund.launcher.action.LoginAction;
 import es.sund.launcher.action.LogoutAction;
+import es.sund.launcher.action.OpenLocalFilesAction;
 import es.sund.launcher.action.PlayOrInstallAction;
 import es.sund.launcher.action.UninstallAction;
 import es.sund.launcher.action.UpdateLauncherAction;
@@ -92,6 +93,8 @@ public class Main {
         InstanceSelectionFrame frame = new InstanceSelectionFrame();
         frame.getProfileScreen().getLogoutButton()
                 .addActionListener(new LogoutAction(frame, credentialStore, Main::showLoginScreen));
+        frame.getProfileScreen().getOpenLocalFilesButton()
+                .addActionListener(new OpenLocalFilesAction(frame));
         frame.setVisible(true);
         frame.setStatus("Cargando juegos disponibles...");
 
