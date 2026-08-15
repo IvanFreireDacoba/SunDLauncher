@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -103,7 +104,16 @@ public class SelfUpdateService {
         Files.move(newAppImage, staged, StandardCopyOption.REPLACE_EXISTING);
         Files.move(staged, currentAppImage, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 
-        detachedProcess(currentAppImage.toString()).start();
+        // El propio proceso (este) corre dentro de un AppImage ya montado por FUSE, así que
+        // hereda APPIMAGE/APPDIR/ARGV0/OWD apuntando a SU punto de montaje (p.ej.
+        // /tmp/.mount_XXXXXX) — variables que ProcessBuilder copiaría al hijo por defecto.
+        // Ese punto de montaje desaparece en cuanto este proceso termina (System.exit() justo
+        // después de esto), así que el hijo debe arrancar con el entorno limpio de esas 4
+        // variables para montarse su propio AppImage desde cero, no para intentar reutilizar
+        // (o confundirse con) el montaje viejo que está a punto de desmontarse.
+        ProcessBuilder relaunch = detachedProcess(currentAppImage.toString());
+        relaunch.environment().keySet().removeAll(List.of("APPIMAGE", "APPDIR", "ARGV0", "OWD"));
+        relaunch.start();
         return Result.APPLIED_WILL_RESTART;
     }
 
