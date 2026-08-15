@@ -11,6 +11,7 @@ import es.sund.launcher.util.DownloadUtil.ProgressListener;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -48,8 +49,11 @@ public class FabricInstaller {
             for (JsonElement el : profile.getAsJsonArray("libraries")) {
                 JsonObject lib = el.getAsJsonObject();
                 String name = lib.get("name").getAsString();
-                boolean fabricMaven = !lib.has("url");
-                String baseUrl = fabricMaven ? AppConstants.FABRIC_MAVEN_BASE_URL : lib.get("url").getAsString();
+                String baseUrl = lib.has("url") ? lib.get("url").getAsString() : AppConstants.FABRIC_MAVEN_BASE_URL;
+                // El profile de meta.fabricmc.net trae SIEMPRE un "url" explícito por librería
+                // (no lo omite cuando es el propio maven.fabricmc.net, como se asumía antes) —
+                // por eso el fallback se decide comparando el host, no la presencia del campo.
+                boolean fabricMaven = isFabricMavenHost(baseUrl);
                 String path = mavenNameToPath(name);
                 String url = baseUrl + (baseUrl.endsWith("/") ? "" : "/") + path;
                 Path dest = new File(paths.librariesDir, path).toPath();
@@ -86,6 +90,14 @@ public class FabricInstaller {
             if (!fabricMaven) throw primaryFailure;
             String fallbackUrl = AppConstants.FABRIC_MAVEN_BASE_URL_FALLBACK + path;
             DownloadUtil.downloadFile(fallbackUrl, dest, null, "Fabric lib " + name, listener);
+        }
+    }
+
+    private static boolean isFabricMavenHost(String baseUrl) {
+        try {
+            return "maven.fabricmc.net".equalsIgnoreCase(URI.create(baseUrl).getHost());
+        } catch (IllegalArgumentException malformed) {
+            return false;
         }
     }
 
