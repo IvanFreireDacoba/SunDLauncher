@@ -9,7 +9,7 @@ public interface AppConstants {
 
     // ---- Identidad de la aplicación ----
     String LAUNCHER_NAME = "SunDLauncher";
-    String CURRENT_LAUNCHER_VERSION = "1.2";
+    String CURRENT_LAUNCHER_VERSION = "1.3";
 
     // ---- Tu API (SunD.es) ----
     String API_BASE_URL = "https://sund.es/APIs";
@@ -44,6 +44,11 @@ public interface AppConstants {
     String MOJANG_RESOURCES_BASE_URL = "https://resources.download.minecraft.net";
     String FABRIC_META_BASE_URL = "https://meta.fabricmc.net/v2/versions/loader";
     String FABRIC_MAVEN_BASE_URL = "https://maven.fabricmc.net/";
+    // Mirror oficial de Fabric (misma API/contenido, distinta IP -no Cloudflare-): usado como
+    // fallback cuando meta.fabricmc.net/maven.fabricmc.net no responden (visto en real: rutas
+    // de ISP que bloquean el rango de Cloudflare 188.114.96.0/20 donde caen esos dos dominios).
+    String FABRIC_META_BASE_URL_FALLBACK = "https://meta2.fabricmc.net/v2/versions/loader";
+    String FABRIC_MAVEN_BASE_URL_FALLBACK = "https://maven2.fabricmc.net/";
     // Mods/resourcepacks no se redistribuyen: se resuelven en el momento de instalar contra esta API.
     String MODRINTH_API_BASE_URL = "https://api.modrinth.com/v2";
 

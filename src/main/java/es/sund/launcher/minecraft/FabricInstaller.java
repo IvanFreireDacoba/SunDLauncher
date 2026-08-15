@@ -37,8 +37,7 @@ public class FabricInstaller {
 
     public JsonObject install(String mcVersion, String loaderVersion) throws InstallationException {
         try {
-            String profileUrl = AppConstants.FABRIC_META_BASE_URL + "/" + mcVersion + "/" + loaderVersion + "/profile/json";
-            String raw = DownloadUtil.getString(profileUrl);
+            String raw = fetchProfileJson(mcVersion, loaderVersion);
             JsonObject profile = JsonParser.parseString(raw).getAsJsonObject();
 
             String id = fabricVersionId(mcVersion, loaderVersion);
@@ -49,17 +48,44 @@ public class FabricInstaller {
             for (JsonElement el : profile.getAsJsonArray("libraries")) {
                 JsonObject lib = el.getAsJsonObject();
                 String name = lib.get("name").getAsString();
-                String baseUrl = lib.has("url") ? lib.get("url").getAsString() : AppConstants.FABRIC_MAVEN_BASE_URL;
+                boolean fabricMaven = !lib.has("url");
+                String baseUrl = fabricMaven ? AppConstants.FABRIC_MAVEN_BASE_URL : lib.get("url").getAsString();
                 String path = mavenNameToPath(name);
                 String url = baseUrl + (baseUrl.endsWith("/") ? "" : "/") + path;
                 Path dest = new File(paths.librariesDir, path).toPath();
-                DownloadUtil.downloadFile(url, dest, null, "Fabric lib " + name, listener);
+                downloadLibrary(url, dest, name, fabricMaven, path);
             }
 
             return profile;
 
         } catch (IOException | InterruptedException e) {
             throw new InstallationException("No se pudo instalar Fabric " + loaderVersion + ": " + e.getMessage(), e);
+        }
+    }
+
+    /** Pide el profile JSON a meta.fabricmc.net, con reintento contra el mirror meta2 si el
+     *  primero no responde (fallo real visto: rutas de ISP que bloquean el rango de Cloudflare
+     *  donde cae meta.fabricmc.net, mientras que meta2 resuelve a una IP distinta y sí conecta). */
+    private String fetchProfileJson(String mcVersion, String loaderVersion) throws IOException, InterruptedException {
+        String suffix = "/" + mcVersion + "/" + loaderVersion + "/profile/json";
+        try {
+            return DownloadUtil.getString(AppConstants.FABRIC_META_BASE_URL + suffix);
+        } catch (IOException primaryFailure) {
+            return DownloadUtil.getString(AppConstants.FABRIC_META_BASE_URL_FALLBACK + suffix);
+        }
+    }
+
+    /** Igual que fetchProfileJson pero para una librería del Maven de Fabric: solo tiene sentido
+     *  reintentar contra maven2 cuando la URL venía del propio FABRIC_MAVEN_BASE_URL (fabricMaven),
+     *  no cuando el profile apunta a un repositorio Maven de terceros. */
+    private void downloadLibrary(String url, Path dest, String name, boolean fabricMaven, String path)
+            throws IOException, InterruptedException {
+        try {
+            DownloadUtil.downloadFile(url, dest, null, "Fabric lib " + name, listener);
+        } catch (IOException primaryFailure) {
+            if (!fabricMaven) throw primaryFailure;
+            String fallbackUrl = AppConstants.FABRIC_MAVEN_BASE_URL_FALLBACK + path;
+            DownloadUtil.downloadFile(fallbackUrl, dest, null, "Fabric lib " + name, listener);
         }
     }
 
