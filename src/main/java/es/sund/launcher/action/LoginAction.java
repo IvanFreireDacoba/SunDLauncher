@@ -75,8 +75,14 @@ public class LoginAction implements ActionListener {
 			System.err.println("Aviso: no se pudieron guardar las credenciales: " + ex.getMessage());
 		}
 
+		// El jugador puede haber escrito su correo en vez del nombre de usuario (login
+		// admite ambos, ver verify_login() en el backend): a partir de aquí usamos
+		// siempre el nombre real de la cuenta (displayName), nunca lo que escribió,
+		// porque eso es lo que se pasará como --username a Minecraft más adelante.
+		String realUsername = response.displayName != null ? response.displayName : username;
+
 		SwingUtilities.invokeLater(() -> mainFrame.setVisible(false));
-		onLoginSuccess.accept(username);
+		onLoginSuccess.accept(realUsername);
 	}
 
 	private void fail(String message) {

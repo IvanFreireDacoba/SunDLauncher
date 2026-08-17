@@ -101,7 +101,10 @@ public class LauncherBootstrapper {
 			return;
 		}
 
-		String username = stored.getUsername();
+		// Igual que en LoginAction: lo guardado puede ser el correo (login admite
+		// ambos), así que de aquí en adelante usamos el nombre real de la cuenta,
+		// no el identificador guardado, porque acaba siendo el --username de Minecraft.
+		String username = accountResponse.displayName != null ? accountResponse.displayName : stored.getUsername();
 		SwingUtilities.invokeLater(() -> onAutoLoginSuccess.accept(username));
 	}
 
