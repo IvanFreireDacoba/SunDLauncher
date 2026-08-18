@@ -58,4 +58,10 @@ nueva** (nunca directamente contra `main`).
 
 ## Licencia
 
-MIT.
+Licencia propia de SunD Studios ([`LICENSE`](LICENSE)), inspirada en el
+principio ShareAlike de Creative Commons: cualquier derivado debe
+distribuirse con esta misma licencia y siempre de forma gratuita — nadie
+puede cobrar por el software en sí (descarga, copia o instalación), aunque
+sí puede usarse dentro de un servicio de pago, p. ej. un servidor con
+rangos/cosméticos. Dar crédito se agradece pero no es obligatorio; lo que
+sí está prohibido es apropiarse de la autoría.
