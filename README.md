@@ -16,17 +16,9 @@ la versión correcta de Fabric y sin tener que arrastrar mods uno a uno.
 - El launcher se queda minimizado mientras estás jugando y se restaura solo
   al cerrar la partida.
 
-## Descarga
+## Stack
 
-En [Releases](https://github.com/IvanFreireDacoba/SunDLauncher/releases)
-tienes la última versión para Windows, macOS y Linux. No hace falta tener
-Java instalado, cada build lleva su propio runtime embebido.
-
-- **Windows**: descomprime el `.zip` y ejecuta el instalador `.exe`.
-- **Linux**: descomprime el `.zip` y haz doble click en el `.AppImage`.
-- **macOS**: descomprime el `.zip` y ejecuta el `.pkg`. Al no estar firmado
-  con un certificado de Apple, la primera vez hay que abrirlo con click
-  derecho → Abrir.
+Java 17 · Maven · Swing
 
 ## Compilar desde el código
 
@@ -44,6 +36,26 @@ el runtime de Java embebido, en `packaging/` hay scripts que usan
 El proyecto está importado como Maven en Eclipse; para tocar las pantallas
 uso el plugin WindowBuilder.
 
-## Stack
+## Descarga
 
-Java 17 · Maven · Swing
+En [Releases](https://github.com/IvanFreireDacoba/SunDLauncher/releases)
+tienes la última versión para Windows, macOS y Linux. No hace falta tener
+Java instalado, cada build lleva su propio runtime embebido.
+
+- **Windows**: descomprime el `.zip` y ejecuta el instalador `.exe`.
+- **Linux**: descomprime el `.zip` y haz doble click en el `.AppImage`.
+- **macOS**: descomprime el `.zip` y ejecuta el `.pkg`. Al no estar firmado
+  con un certificado de Apple, la primera vez hay que abrirlo con click
+  derecho → Abrir.
+
+## Contribuciones
+
+Se aceptan sugerencias y peticiones de funciones — abre un
+[issue](https://github.com/IvanFreireDacoba/SunDLauncher/issues).
+
+También se aceptan **pull requests**, siempre que vengan **en una rama
+nueva** (nunca directamente contra `main`).
+
+## Licencia
+
+MIT.
