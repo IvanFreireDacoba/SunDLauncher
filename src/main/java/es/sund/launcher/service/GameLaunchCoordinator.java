@@ -75,7 +75,7 @@ public class GameLaunchCoordinator {
 
 			panel.showInstalled();
 		} catch (InstallationException ex) {
-			SwingUtilities.invokeLater(() -> onFailure.accept("No se pudo iniciar Minecraft: " + ex.getMessage()));
+			SwingUtilities.invokeLater(() -> onFailure.accept("No se pudo iniciar " + instance.name + ": " + ex.getMessage()));
 		} catch (InterruptedException ex) {
 			Thread.currentThread().interrupt();
 		} catch (RuntimeException ex) {
@@ -84,7 +84,7 @@ public class GameLaunchCoordinator {
 			// capturadas. Sin este catch, cualquier RuntimeException inesperada
 			// (p.ej. una URL mal formada) mataría ese hilo en silencio y la
 			// instancia se quedaría colgada en su tarjeta de progreso para siempre.
-			SwingUtilities.invokeLater(() -> onFailure.accept("No se pudo iniciar Minecraft (error inesperado): " + ex.getMessage()));
+			SwingUtilities.invokeLater(() -> onFailure.accept("No se pudo iniciar " + instance.name + " (error inesperado): " + ex.getMessage()));
 		}
 	}
 }
