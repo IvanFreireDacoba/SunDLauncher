@@ -12,11 +12,13 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
- * Borra del disco todo lo instalado de una instancia (versión de Minecraft,
- * librerías, assets, Fabric, config, mods, resourcepacks...), tras pedir
- * confirmación explícita. Solo está visible cuando la instancia ya está
- * instalada (ver InstancePanel.showInstalled()) y corre en su propio hilo,
- * igual que instalar, para no bloquear el resto del launcher.
+ * Borra del disco todo lo instalado de una instancia (para Minecraft: versión
+ * vanilla, librerías, assets, Fabric, config, mods, resourcepacks...; para una
+ * instancia nativa como PocketCrossing: el paquete de cliente completo — ver
+ * GameInstance.isNative()), tras pedir confirmación explícita. Solo está
+ * visible cuando la instancia ya está instalada (ver
+ * InstancePanel.showInstalled()) y corre en su propio hilo, igual que
+ * instalar, para no bloquear el resto del launcher.
  */
 public class UninstallAction implements ActionListener {
 
