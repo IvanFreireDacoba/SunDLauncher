@@ -22,6 +22,19 @@ package es.sund.launcher.model;
  * cambió sin tener que volver a resolver cada mod/resourcepack contra
  * Modrinth: ese trabajo de red solo se repite al instalar/actualizar, nunca
  * en cada "Jugar" de una instancia ya al día.
+ *
+ * type: discriminador añadido para instancias que no son Minecraft (p.ej.
+ * "pocketcrossing"). null o "minecraft" siguen significando lo mismo que
+ * antes de que este campo existiera (pipeline Minecraft/Fabric de siempre,
+ * ver GameSessionStarter/InstanceInstallStatus) — un backend que todavía no
+ * mande este campo no rompe nada. Cualquier otro valor usa en su lugar el
+ * pipeline genérico de NativeGameInstaller/NativeGameLauncher, que solo
+ * necesita instancePackUrl/instancePackSha1 (el paquete completo del
+ * cliente) y opcionalmente connectUrl.
+ *
+ * connectUrl: solo relevante para instancias no-Minecraft — dirección
+ * (host:puerto o URL) del servidor de juego al que debe conectarse el
+ * cliente nativo, para no tener que hardcodearla en NativeGameLauncher.
  */
 public class GameInstance {
     public int id;
@@ -30,6 +43,7 @@ public class GameInstance {
     // p.ej. "SunDOrigins_instance". Reemplaza al antiguo nombrado por id numérico
     // ("2"/"3"), ilegible para el jugador si mira la carpeta de datos del launcher.
     public String folder;
+    public String type;
     public String mcVersion;
     public String fabricLoaderVersion;
     public String instancePackUrl;
@@ -38,4 +52,10 @@ public class GameInstance {
     public String modpackJsonSha1;
     public String resourcepackJsonUrl;
     public String resourcepackJsonSha1;
+    public String connectUrl;
+
+    /** false para null/"minecraft" (pipeline de siempre), true para cualquier otro tipo. */
+    public boolean isNative() {
+        return type != null && !type.equals("minecraft");
+    }
 }

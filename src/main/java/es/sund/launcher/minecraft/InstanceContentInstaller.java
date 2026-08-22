@@ -39,7 +39,11 @@ import java.util.List;
  */
 public class InstanceContentInstaller {
 
-    private static final String INSTANCE_PACK_MARKER_FILE = ".instance_pack.sha1";
+    // Visibilidad pública: NativeGameInstaller (paquete nativegame) reutiliza el mismo
+    // nombre de marcador para su propio paquete de cliente, así InstanceInstallStatus.
+    // isUpdateAvailable() puede seguir leyendo instancePackUrl/instancePackSha1 igual
+    // para cualquier tipo de instancia sin necesitar una rama propia.
+    public static final String INSTANCE_PACK_MARKER_FILE = ".instance_pack.sha1";
     private static final String MANAGED_MODS_MARKER_FILE = ".managed_mods.json";
     private static final String MODPACK_JSON_MARKER_FILE = ".modpack_json.sha1";
     private static final String RESOURCEPACK_JSON_MARKER_FILE = ".resourcepack_json.sha1";

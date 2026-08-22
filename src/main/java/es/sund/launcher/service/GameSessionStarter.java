@@ -10,6 +10,8 @@ import es.sund.launcher.minecraft.InstanceContentInstaller;
 import es.sund.launcher.minecraft.MinecraftInstaller;
 import es.sund.launcher.model.GameInstance;
 import es.sund.launcher.model.GameSessionTokenResponse;
+import es.sund.launcher.nativegame.NativeGameInstaller;
+import es.sund.launcher.nativegame.NativeGameLauncher;
 import es.sund.launcher.security.CredentialStore;
 import es.sund.launcher.security.GameSessionTokenFile;
 import es.sund.launcher.security.StoredCredentials;
@@ -34,6 +36,8 @@ public class GameSessionStarter {
     private final FabricInstaller fabricInstaller;
     private final InstanceContentInstaller contentInstaller;
     private final GameLauncher gameLauncher = new GameLauncher();
+    private final NativeGameInstaller nativeGameInstaller;
+    private final NativeGameLauncher nativeGameLauncher = new NativeGameLauncher();
     private final SunDApiService apiService;
     private final CredentialStore credentialStore;
 
@@ -44,17 +48,22 @@ public class GameSessionStarter {
         this.minecraftInstaller = new MinecraftInstaller(instancePaths, progressListener);
         this.fabricInstaller = new FabricInstaller(instancePaths, progressListener);
         this.contentInstaller = new InstanceContentInstaller(instancePaths, progressListener);
+        this.nativeGameInstaller = new NativeGameInstaller(instancePaths, progressListener);
         this.apiService = apiService;
         this.credentialStore = credentialStore;
     }
 
     /**
-     * Instala lo que falte (vanilla, Fabric, contenido propio) SIN lanzar el juego. Usado
-     * cuando el botón pulsado era "Instalar"/"Actualizar" (ver GameLaunchCoordinator): el
-     * jugador puede poner a instalar varias instancias a la vez, y no debe encontrarse con
-     * que Minecraft se abre solo en cuanto cada una termina.
+     * Instala lo que falte SIN lanzar el juego. Usado cuando el botón pulsado era
+     * "Instalar"/"Actualizar" (ver GameLaunchCoordinator): el jugador puede poner a instalar
+     * varias instancias a la vez, y no debe encontrarse con que el juego se abre solo en
+     * cuanto cada una termina. Bifurca según GameInstance.isNative() — ver GameInstance.type.
      */
     public void ensureInstalled() throws InstallationException {
+        if (instance.isNative()) {
+            nativeGameInstaller.install(instance);
+            return;
+        }
         minecraftInstaller.install(instance.mcVersion); // idempotente
         fabricInstaller.install(instance.mcVersion, instance.fabricLoaderVersion); // idempotente
         if (!InstanceInstallStatus.isInstalled(instance) || InstanceInstallStatus.isUpdateAvailable(instance)) {
@@ -62,12 +71,32 @@ public class GameSessionStarter {
         }
     }
 
-    /** Instala lo que falte y lanza Minecraft con una cuenta offline para el username dado. */
+    /** Instala lo que falte y lanza el juego para el username dado (offline en el caso de Minecraft). */
     public Process start(String username) throws InstallationException {
-        // Limpia un token de una partida anterior que el mod nunca llegó a leer (crash, sin
+        // Limpia un token de una partida anterior que el cliente nunca llegó a leer (crash, sin
         // conexión al servidor, un solo jugador) antes de pedir uno nuevo.
         GameSessionTokenFile.deleteIfExists(instancePaths);
 
+        Process process = instance.isNative() ? startNative(username) : startMinecraft(username);
+
+        // Mismo motivo que el borrado de arriba: si esta partida tampoco llega a conectarse a un
+        // servidor con sesión, el token no debe sobrevivir en disco más allá de la propia partida.
+        process.onExit().thenRun(() -> {
+            GameSessionTokenFile.deleteIfExists(instancePaths);
+            pruneOldLogs();
+        });
+        return process;
+    }
+
+    private Process startNative(String username) throws InstallationException {
+        if (!NativeGameInstaller.isInstalled(instancePaths) || InstanceInstallStatus.isUpdateAvailable(instance)) {
+            nativeGameInstaller.install(instance);
+        }
+        attemptWriteSessionToken(username);
+        return nativeGameLauncher.launch(instancePaths, instance, username);
+    }
+
+    private Process startMinecraft(String username) throws InstallationException {
         JsonObject vanillaJson = minecraftInstaller.install(instance.mcVersion); // idempotente
         JsonObject fabricJson = fabricInstaller.install(instance.mcVersion, instance.fabricLoaderVersion); // idempotente
 
@@ -85,15 +114,7 @@ public class GameSessionStarter {
         attemptWriteSessionToken(username);
 
         String uuid = OfflineUUID.generate(username).toString();
-
-        Process process = gameLauncher.launch(instancePaths, instance.mcVersion, vanillaJson, fabricJson, username, uuid);
-        // Mismo motivo que el borrado de arriba: si esta partida tampoco llega a conectarse a un
-        // servidor con el mod, el token no debe sobrevivir en disco más allá de la propia partida.
-        process.onExit().thenRun(() -> {
-            GameSessionTokenFile.deleteIfExists(instancePaths);
-            pruneOldLogs();
-        });
-        return process;
+        return gameLauncher.launch(instancePaths, instance.mcVersion, vanillaJson, fabricJson, username, uuid);
     }
 
     /**

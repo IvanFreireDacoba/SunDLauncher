@@ -5,13 +5,17 @@ import es.sund.launcher.minecraft.FabricInstaller;
 import es.sund.launcher.minecraft.InstanceContentInstaller;
 import es.sund.launcher.minecraft.MinecraftInstaller;
 import es.sund.launcher.model.GameInstance;
+import es.sund.launcher.nativegame.NativeGameInstaller;
 import es.sund.launcher.ui.InstancePanel;
 
-/** Comprueba en disco si una instancia (vanilla + Fabric) ya está instalada, sin tocar la red. */
+/** Comprueba en disco si una instancia (Minecraft o nativa, ver GameInstance.isNative()) ya está instalada, sin tocar la red. */
 public final class InstanceInstallStatus {
 
     public static boolean isInstalled(GameInstance instance) {
         AppPaths.InstancePaths paths = AppPaths.forInstance(instance);
+        if (instance.isNative()) {
+            return NativeGameInstaller.isInstalled(paths);
+        }
         return MinecraftInstaller.isInstalled(paths, instance.mcVersion)
                 && FabricInstaller.isInstalled(paths, instance.mcVersion, instance.fabricLoaderVersion);
     }
@@ -68,9 +72,14 @@ public final class InstanceInstallStatus {
         boolean installed = isInstalled(instance);
         boolean updateAvailable = installed && isUpdateAvailable(instance);
 
-        StringBuilder details = new StringBuilder("Minecraft ").append(instance.mcVersion);
-        if (instance.fabricLoaderVersion != null && !instance.fabricLoaderVersion.isBlank()) {
-            details.append(" · Fabric ").append(instance.fabricLoaderVersion);
+        StringBuilder details = new StringBuilder();
+        if (instance.isNative()) {
+            details.append(instance.name);
+        } else {
+            details.append("Minecraft ").append(instance.mcVersion);
+            if (instance.fabricLoaderVersion != null && !instance.fabricLoaderVersion.isBlank()) {
+                details.append(" · Fabric ").append(instance.fabricLoaderVersion);
+            }
         }
         details.append(" · ").append(!installed ? "No instalado" : updateAvailable ? "Actualización disponible" : "Instalado");
         panel.setInstanceInfo(instance.name, details.toString());
