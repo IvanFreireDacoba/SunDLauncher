@@ -33,7 +33,7 @@ public class UninstallAction implements ActionListener {
         int choice = JOptionPane.showConfirmDialog(
                 panel,
                 "Se borrarán todos los archivos instalados de " + instance.name
-                        + " (Minecraft, mods, config, resourcepacks...).\n¿Seguro que quieres desinstalarla?",
+                        + ".\n¿Seguro que quieres desinstalarla?",
                 "Desinstalar " + instance.name,
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE);
