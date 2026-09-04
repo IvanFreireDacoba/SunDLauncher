@@ -20,8 +20,11 @@ package es.sund.launcher.model;
  * mods que resuelve), igual que instancePackSha1 pero para estas dos listas.
  * Permite a InstanceInstallStatus/InstanceContentInstaller saber si algo
  * cambió sin tener que volver a resolver cada mod/resourcepack contra
- * Modrinth: ese trabajo de red solo se repite al instalar/actualizar, nunca
- * en cada "Jugar" de una instancia ya al día.
+ * Modrinth: ese trabajo de red (resolución completa) solo se repite al
+ * instalar/actualizar, nunca en cada "Jugar". La consulta ligera que SÍ se
+ * repite en cada "Jugar" (refrescar estos hashes contra GameCatalog, ver
+ * PlayOrInstallAction.refreshRemoteState()) es aparte y mucho más barata:
+ * solo compara texto, no resuelve nada contra Modrinth.
  *
  * type: discriminador añadido para instancias que no son Minecraft (p.ej.
  * "pocketcrossing"). null o "minecraft" siguen significando lo mismo que
