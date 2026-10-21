@@ -130,10 +130,13 @@ public class PlayOrInstallAction implements ActionListener {
     private void applyFreshMetadata(GameInstance fresh) {
         instance.instancePackUrl = fresh.instancePackUrl;
         instance.instancePackSha1 = fresh.instancePackSha1;
+        instance.instancePackSha256 = fresh.instancePackSha256;
         instance.modpackJsonUrl = fresh.modpackJsonUrl;
         instance.modpackJsonSha1 = fresh.modpackJsonSha1;
+        instance.modpackJsonSha256 = fresh.modpackJsonSha256;
         instance.resourcepackJsonUrl = fresh.resourcepackJsonUrl;
         instance.resourcepackJsonSha1 = fresh.resourcepackJsonSha1;
+        instance.resourcepackJsonSha256 = fresh.resourcepackJsonSha256;
     }
 
     /** Tras un fallo, vuelve al estado correcto según lo que de verdad haya en disco (no lo que hubiera antes de intentarlo). */

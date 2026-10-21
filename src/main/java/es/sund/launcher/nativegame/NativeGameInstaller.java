@@ -48,14 +48,15 @@ public class NativeGameInstaller {
                     "La instancia " + instance.name + " no tiene paquete de cliente configurado (instancePackUrl).");
         }
         try {
-            String appliedSha1 = InstanceContentInstaller.readAppliedInstancePackSha1(paths);
-            if (isInstalled(paths) && instance.instancePackSha1 != null
-                    && instance.instancePackSha1.equalsIgnoreCase(appliedSha1)) {
+            String applied = InstanceContentInstaller.readAppliedInstancePackSha1(paths);
+            if (isInstalled(paths) && InstanceContentInstaller.markerMatches(
+                    applied, instance.instancePackSha256, instance.instancePackSha1)) {
                 return; // ya aplicado, nada que hacer
             }
 
             Path zipTarget = new File(paths.root, "client-pack.zip").toPath();
-            DownloadUtil.downloadFile(instance.instancePackUrl, zipTarget, instance.instancePackSha1,
+            DownloadUtil.downloadOwnArtifact(instance.instancePackUrl, zipTarget,
+                    instance.instancePackSha256, instance.instancePackSha1,
                     "Cliente de " + instance.name, listener);
             DownloadUtil.unzip(zipTarget.toFile(), paths.root);
             Files.deleteIfExists(zipTarget);
@@ -65,9 +66,11 @@ public class NativeGameInstaller {
                         + " no contiene " + CLIENT_JAR_NAME + " en su raíz.");
             }
 
-            if (instance.instancePackSha1 != null) {
+            String markerValue = InstanceContentInstaller.preferredHash(
+                    instance.instancePackSha256, instance.instancePackSha1);
+            if (markerValue != null) {
                 Path marker = new File(paths.root, InstanceContentInstaller.INSTANCE_PACK_MARKER_FILE).toPath();
-                Files.writeString(marker, instance.instancePackSha1, StandardCharsets.UTF_8);
+                Files.writeString(marker, markerValue, StandardCharsets.UTF_8);
             }
         } catch (IOException | InterruptedException e) {
             throw new InstallationException("No se pudo instalar " + instance.name + ": " + e.getMessage(), e);

@@ -37,27 +37,30 @@ public final class InstanceInstallStatus {
      */
     public static boolean isUpdateAvailable(GameInstance instance) {
         AppPaths.InstancePaths paths = AppPaths.forInstance(instance);
-        return isStale(instance.instancePackUrl, instance.instancePackSha1,
+        return isStale(instance.instancePackUrl, instance.instancePackSha256, instance.instancePackSha1,
                     InstanceContentInstaller.readAppliedInstancePackSha1(paths))
-                || isStale(instance.modpackJsonUrl, instance.modpackJsonSha1,
+                || isStale(instance.modpackJsonUrl, instance.modpackJsonSha256, instance.modpackJsonSha1,
                     InstanceContentInstaller.readAppliedModpackJsonSha1(paths))
-                || isStale(instance.resourcepackJsonUrl, instance.resourcepackJsonSha1,
+                || isStale(instance.resourcepackJsonUrl, instance.resourcepackJsonSha256, instance.resourcepackJsonSha1,
                     InstanceContentInstaller.readAppliedResourcepackJsonSha1(paths));
     }
 
     /**
-     * remoteSha1 == null significa que el backend no manda hash para este contenido: no se
-     * puede confirmar que siga igual, así que se trata como "desactualizado" (conservador) en
+     * Compara, sin red, el hash del catálogo contra el marcador en disco (ver
+     * InstanceContentInstaller.markerMatches, que tolera que el marcador sea SHA-1 —launcher
+     * viejo— o SHA-256 —launcher nuevo— mientras el catálogo sirva ambos durante la transición).
+     * Si el backend no manda NINGÚN hash (ni sha256 ni sha1) para un contenido que sí existe, no
+     * se puede confirmar que siga igual, así que se trata como "desactualizado" (conservador) en
      * vez de asumir que no cambió nada.
      */
-    private static boolean isStale(String url, String remoteSha1, String appliedSha1) {
+    private static boolean isStale(String url, String remoteSha256, String remoteSha1, String appliedMarker) {
         if (url == null) {
             return false;
         }
-        if (remoteSha1 == null) {
+        if ((remoteSha256 == null || remoteSha256.isBlank()) && (remoteSha1 == null || remoteSha1.isBlank())) {
             return true;
         }
-        return !remoteSha1.equalsIgnoreCase(appliedSha1);
+        return !InstanceContentInstaller.markerMatches(appliedMarker, remoteSha256, remoteSha1);
     }
 
     /**

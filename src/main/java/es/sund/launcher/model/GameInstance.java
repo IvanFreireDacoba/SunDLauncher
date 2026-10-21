@@ -55,6 +55,20 @@ public class GameInstance {
     public String modpackJsonSha1;
     public String resourcepackJsonUrl;
     public String resourcepackJsonSha1;
+    // Hashes SHA-256 en paralelo a los *Sha1 de arriba, para NUESTROS propios
+    // artefactos (instance.zip/client.zip y las listas modpack.json/
+    // Resourcepack_list.json). Opcionales y aditivos: si el catálogo los manda,
+    // la verificación de integridad y la detección de contenido desactualizado
+    // usan SHA-256; si no (catálogo antiguo), se cae a los *Sha1 de siempre
+    // (ver InstanceContentInstaller.preferredHash/markerMatches). Así un launcher
+    // nuevo funciona igual contra un backend viejo (solo sha1) que contra el
+    // nuevo (sha1+sha256), sin flag-day. NO afecta a los mods/resourcepacks que
+    // se resuelven contra Modrinth ni a los directUrl (CurseForge): esos siguen
+    // en SHA-1, que es el único hash que da su API (ver ModpackDefinition.sha1 /
+    // ModrinthVersionResponse).
+    public String instancePackSha256;
+    public String modpackJsonSha256;
+    public String resourcepackJsonSha256;
     public String connectUrl;
 
     /** false para null/"minecraft" (pipeline de siempre), true para cualquier otro tipo. */

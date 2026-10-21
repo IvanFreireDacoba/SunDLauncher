@@ -121,6 +121,25 @@ public final class DownloadUtil {
         Files.move(tmp, destination, StandardCopyOption.REPLACE_EXISTING);
     }
 
+    /**
+     * Descarga y verifica un artefacto NUESTRO (instance.zip/client.zip, configPack, o una lista
+     * modpack.json/Resourcepack_list.json) eligiendo el hash según lo que mande el backend: si hay
+     * SHA-256, verifica con SHA-256; si no, cae a SHA-1 (comportamiento de siempre). Así un launcher
+     * nuevo verifica igual contra un catálogo viejo (solo sha1) que contra el nuevo (sha1+sha256),
+     * sin exigir nunca sha256 de forma obligatoria.
+     *
+     * NO usar para mods/resourcepacks resueltos contra Modrinth ni para directUrl de CurseForge:
+     * esos se quedan en SHA-1 (único hash que expone su API) y usan los overloads de arriba.
+     */
+    public static void downloadOwnArtifact(String url, Path destination, String expectedSha256, String expectedSha1,
+                                            String taskName, ProgressListener listener) throws IOException, InterruptedException {
+        if (expectedSha256 != null && !expectedSha256.isBlank()) {
+            downloadFile(url, destination, "SHA-256", expectedSha256, taskName, listener);
+        } else {
+            downloadFile(url, destination, "SHA-1", expectedSha1, taskName, listener);
+        }
+    }
+
     private static boolean hashMatches(Path file, String algorithm, String expectedHashHex) throws IOException {
         try {
             MessageDigest digest = MessageDigest.getInstance(algorithm);

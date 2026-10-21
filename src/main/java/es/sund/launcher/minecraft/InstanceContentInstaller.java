@@ -90,6 +90,33 @@ public class InstanceContentInstaller {
         }
     }
 
+    /**
+     * Hash que se escribe en el marcador de un artefacto NUESTRO tras aplicarlo: SHA-256 si el
+     * catálogo lo manda, si no el SHA-1 de siempre. Reutilizado por NativeGameInstaller.
+     */
+    public static String preferredHash(String sha256, String sha1) {
+        return (sha256 != null && !sha256.isBlank()) ? sha256 : sha1;
+    }
+
+    /**
+     * Decide si el marcador en disco (escrito por una instalación anterior, que pudo ser un
+     * launcher viejo que solo guardaba SHA-1, o uno nuevo que guarda SHA-256) corresponde a lo
+     * que el catálogo manda ahora. Se da por "al día" si el marcador coincide con CUALQUIERA de
+     * los dos hashes del catálogo (sha256 o sha1): así, durante la transición en la que el
+     * catálogo sirve ambos, un marcador sha1 ya existente no provoca una reinstalación espuria,
+     * y un marcador sha256 nuevo tampoco. Solo si no coincide con ninguno (o no hay marcador) se
+     * considera desactualizado. Reutilizado por NativeGameInstaller e InstanceInstallStatus.
+     */
+    public static boolean markerMatches(String applied, String sha256, String sha1) {
+        if (applied == null) {
+            return false;
+        }
+        if (sha256 != null && applied.equalsIgnoreCase(sha256)) {
+            return true;
+        }
+        return sha1 != null && applied.equalsIgnoreCase(sha1);
+    }
+
     public void install(GameInstance instance) throws InstallationException {
         try {
             installInstancePack(instance);
@@ -111,13 +138,14 @@ public class InstanceContentInstaller {
         }
 
         Path marker = new File(paths.root, INSTANCE_PACK_MARKER_FILE).toPath();
-        String appliedSha1 = readAppliedInstancePackSha1(paths);
-        if (instance.instancePackSha1 != null && instance.instancePackSha1.equalsIgnoreCase(appliedSha1)) {
+        String applied = readAppliedInstancePackSha1(paths);
+        if (markerMatches(applied, instance.instancePackSha256, instance.instancePackSha1)) {
             return; // ya aplicado, nada que hacer
         }
 
         Path zipTarget = new File(paths.root, "instance-pack.zip").toPath();
-        DownloadUtil.downloadFile(instance.instancePackUrl, zipTarget, instance.instancePackSha1,
+        DownloadUtil.downloadOwnArtifact(instance.instancePackUrl, zipTarget,
+                instance.instancePackSha256, instance.instancePackSha1,
                 "Contenido de " + instance.name, listener);
 
         // Se extrae primero a una carpeta temporal (en vez de directamente sobre
@@ -133,8 +161,9 @@ public class InstanceContentInstaller {
 
         Files.deleteIfExists(zipTarget);
 
-        if (instance.instancePackSha1 != null) {
-            Files.writeString(marker, instance.instancePackSha1, StandardCharsets.UTF_8);
+        String markerValue = preferredHash(instance.instancePackSha256, instance.instancePackSha1);
+        if (markerValue != null) {
+            Files.writeString(marker, markerValue, StandardCharsets.UTF_8);
         }
     }
 
@@ -172,8 +201,8 @@ public class InstanceContentInstaller {
             return;
         }
         Path modpackMarker = new File(paths.root, MODPACK_JSON_MARKER_FILE).toPath();
-        if (instance.modpackJsonSha1 != null
-                && instance.modpackJsonSha1.equalsIgnoreCase(readMarker(paths, MODPACK_JSON_MARKER_FILE))) {
+        if (markerMatches(readMarker(paths, MODPACK_JSON_MARKER_FILE),
+                instance.modpackJsonSha256, instance.modpackJsonSha1)) {
             return; // la lista de mods no cambió desde la última instalación, nada que resolver
         }
 
@@ -205,8 +234,9 @@ public class InstanceContentInstaller {
 
         removeUnmanagedMods(managedFileNames);
 
-        if (instance.modpackJsonSha1 != null) {
-            Files.writeString(modpackMarker, instance.modpackJsonSha1, StandardCharsets.UTF_8);
+        String markerValue = preferredHash(instance.modpackJsonSha256, instance.modpackJsonSha1);
+        if (markerValue != null) {
+            Files.writeString(modpackMarker, markerValue, StandardCharsets.UTF_8);
         }
     }
 
@@ -240,8 +270,8 @@ public class InstanceContentInstaller {
             return;
         }
         Path resourcepackMarker = new File(paths.root, RESOURCEPACK_JSON_MARKER_FILE).toPath();
-        if (instance.resourcepackJsonSha1 != null
-                && instance.resourcepackJsonSha1.equalsIgnoreCase(readMarker(paths, RESOURCEPACK_JSON_MARKER_FILE))) {
+        if (markerMatches(readMarker(paths, RESOURCEPACK_JSON_MARKER_FILE),
+                instance.resourcepackJsonSha256, instance.resourcepackJsonSha1)) {
             return; // la lista de resourcepacks no cambió desde la última instalación, nada que resolver
         }
 
@@ -264,8 +294,9 @@ public class InstanceContentInstaller {
 
         applyResourcepackOrder(orderedFileNames);
 
-        if (instance.resourcepackJsonSha1 != null) {
-            Files.writeString(resourcepackMarker, instance.resourcepackJsonSha1, StandardCharsets.UTF_8);
+        String markerValue = preferredHash(instance.resourcepackJsonSha256, instance.resourcepackJsonSha1);
+        if (markerValue != null) {
+            Files.writeString(resourcepackMarker, markerValue, StandardCharsets.UTF_8);
         }
     }
 

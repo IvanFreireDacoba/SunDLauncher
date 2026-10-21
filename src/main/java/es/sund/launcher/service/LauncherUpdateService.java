@@ -48,18 +48,23 @@ public class LauncherUpdateService {
         // verificar ningún hash (DownloadUtil.downloadFile(..., null, ...) desactiva la
         // comprobación por completo) — un backend comprometido o una respuesta manipulada
         // podía hacer aplicar contenido arbitrario sobre config/resourcepacks sin ninguna
-        // garantía de integridad. Ahora, sin configPackSha1 no se aplica nada: es mejor no
-        // actualizar la config que aplicar un zip sin verificar su procedencia.
-        if (remote.configPackSha1 == null || remote.configPackSha1.isBlank()) {
+        // garantía de integridad. Ahora, sin hash de verificación no se aplica nada: es mejor
+        // no actualizar la config que aplicar un zip sin verificar su procedencia. Acepta
+        // SHA-256 (preferido) o SHA-1 (retrocompatibilidad con un backend viejo): basta con uno
+        // de los dos, pero al menos uno es obligatorio (fail-closed).
+        boolean hasSha256 = remote.configPackSha256 != null && !remote.configPackSha256.isBlank();
+        boolean hasSha1 = remote.configPackSha1 != null && !remote.configPackSha1.isBlank();
+        if (!hasSha256 && !hasSha1) {
             throw new LauncherUpdateException(
-                    "El servidor no proporcionó un hash de verificación (configPackSha1) para el paquete de configuración.");
+                    "El servidor no proporcionó un hash de verificación (configPackSha256/configPackSha1) para el paquete de configuración.");
         }
         try {
             DownloadUtil.deleteRecursive(AppPaths.CONFIG_DIR.toPath());
             DownloadUtil.deleteRecursive(AppPaths.RESOURCEPACKS_DIR.toPath());
 
             Path zipTarget = new File(AppPaths.ROOT_DIR, "update-pack.zip").toPath();
-            DownloadUtil.downloadFile(remote.configPackUrl, zipTarget, remote.configPackSha1, "Paquete de actualización", null);
+            DownloadUtil.downloadOwnArtifact(remote.configPackUrl, zipTarget,
+                    remote.configPackSha256, remote.configPackSha1, "Paquete de actualización", null);
             DownloadUtil.unzip(zipTarget.toFile(), AppPaths.ROOT_DIR);
             zipTarget.toFile().delete();
 
